@@ -46,8 +46,7 @@ namespace Beat_360fyer_Plugin
         [OnStart]
         public void OnApplicationStart()
         {
-            Log.Info("OnApplicationStart");
-            new GameObject("Beat_360fyer_PluginController").AddComponent<Beat_360fyer_PluginController>();
+            Log.Info("Starting Beat360fyer plugin");
 
             Harmony harmony = new Harmony("nl.codestix.Beat360fyerPlugin");
             harmony.PatchAll();
@@ -56,9 +55,6 @@ namespace Beat_360fyer_Plugin
         [OnExit]
         public void OnApplicationQuit()
         {
-            Log.Debug("OnApplicationQuit");
-
-
         }
     }
 }
