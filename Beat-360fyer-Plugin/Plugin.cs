@@ -1,4 +1,5 @@
-﻿using IPA;
+﻿using HarmonyLib;
+using IPA;
 using IPA.Config;
 using IPA.Config.Stores;
 using System;
@@ -45,15 +46,18 @@ namespace Beat_360fyer_Plugin
         [OnStart]
         public void OnApplicationStart()
         {
-            Log.Debug("OnApplicationStart");
+            Log.Info("OnApplicationStart");
             new GameObject("Beat_360fyer_PluginController").AddComponent<Beat_360fyer_PluginController>();
 
+            Harmony harmony = new Harmony("nl.codestix.Beat360fyerPlugin");
+            harmony.PatchAll();
         }
 
         [OnExit]
         public void OnApplicationQuit()
         {
             Log.Debug("OnApplicationQuit");
+
 
         }
     }
