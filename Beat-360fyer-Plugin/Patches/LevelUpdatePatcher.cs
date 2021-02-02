@@ -33,34 +33,28 @@ namespace Beat_360fyer_Plugin.Patches
             Plugin.Log.Info("HandleLevelCollectionTableViewDidSelectLevel");
             if(level == null)
             {
-                Plugin.Log.Info("____previewBeatmapLevelToBeSelected is null");
+                Plugin.Log.Info("level is null");
                 return;
             }
 
-            Plugin.Log.Info("type: " + level.GetType().FullName);
             IBeatmapLevel level3 = level as IBeatmapLevel;
             if(level3 == null)
             {
+                Plugin.Log.Info("IPreviewBeatmapLevel is not IBeatmapLevel?");
                 return;
             }
 
             if (level3.beatmapLevelData.difficultyBeatmapSets.Any((e) => e.beatmapCharacteristic.serializedName == GENERATED_GAME_MODE))
             {
-                Plugin.Log.Info("Already registered new gamemode");
+                Plugin.Log.Info("already registered new gamemode");
                 return;
             }
 
-            FieldInfo field = level3.beatmapLevelData.GetType().GetField("_difficultyBeatmapSets", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (field == null)
-            {
-                Plugin.Log.Info("field is null");
-                return;
-            }
 
-            IDifficultyBeatmapSet[] set = (IDifficultyBeatmapSet[])field.GetValue(level3.beatmapLevelData);
-            if (set == null)
+            IDifficultyBeatmapSet[] difficultySets = level3.beatmapLevelData.difficultyBeatmapSets;// Fields.Get<IDifficultyBeatmapSet[]>(level3.beatmapLevelData, "_difficultyBeatmapSets");
+            if (difficultySets == null)
             {
-                Plugin.Log.Info("set is null");
+                Plugin.Log.Info("difficultySets is null");
                 return;
             }
 
@@ -71,14 +65,7 @@ namespace Beat_360fyer_Plugin.Patches
                 return;
             }
 
-            FieldInfo customLevelField = customLevelLoader.GetType().GetField("_beatmapCharacteristicCollection", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (customLevelField == null)
-            {
-                Plugin.Log.Info("customLevelField is null");
-                return;
-            }
-
-            BeatmapCharacteristicCollectionSO defaultGameModes = (BeatmapCharacteristicCollectionSO)customLevelField.GetValue(customLevelLoader);
+            BeatmapCharacteristicCollectionSO defaultGameModes = Fields.Get<BeatmapCharacteristicCollectionSO>(customLevelLoader, "_beatmapCharacteristicCollection");
             if (defaultGameModes == null)
             {
                 Plugin.Log.Info("beatmapCharacteristicCollection is null");
@@ -116,8 +103,8 @@ namespace Beat_360fyer_Plugin.Patches
             CustomDifficultyBeatmap[] difficulties = standard.difficultyBeatmaps.Select((e) => new CustomDifficultyBeatmap(e.level, custom360DegreeSet, e.difficulty, e.difficultyRank, e.noteJumpMovementSpeed, e.noteJumpStartBeatOffset, e.beatmapData)).ToArray();
             custom360DegreeSet.SetCustomDifficultyBeatmaps(difficulties);
 
-            set = set.AddToArray(custom360DegreeSet);
-            field.SetValue(level3.beatmapLevelData, set);
+            difficultySets = difficultySets.AddToArray(custom360DegreeSet);
+            Fields.Set(level3.beatmapLevelData, "_difficultyBeatmapSets", difficultySets);
 
             Plugin.Log.Info("created generated 360 gamemode");
         }
