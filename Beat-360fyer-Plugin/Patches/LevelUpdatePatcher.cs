@@ -6,32 +6,41 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Zenject;
 
 namespace Beat_360fyer_Plugin.Patches
 {
-    [HarmonyPatch(typeof(SinglePlayerLevelSelectionFlowCoordinator))]
-    [HarmonyPatch("StartLevel")]
-    class PlayButtonPatcher
+    [HarmonyPatch(typeof(MenuTransitionsHelper))]
+    [HarmonyPatch("StartStandardLevel", new[] { typeof(string), typeof(IDifficultyBeatmap), typeof(OverrideEnvironmentSettings), typeof(ColorScheme), typeof(GameplayModifiers), typeof(PlayerSpecificSettings), typeof(PracticeSettings), typeof(string), typeof(bool), typeof(Action), typeof(Action<DiContainer>), typeof(Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>) })]
+    public class TransitionPatcher
     {
-        static void Prefix(Action beforeSceneSwitchCallback, bool practice, ref LevelSelectionNavigationController ___levelSelectionNavigationController)
+        static void Prefix(string gameMode, ref IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
-            IDifficultyBeatmap bm = ___levelSelectionNavigationController.selectedDifficultyBeatmap;
+            // CustomDifficultyBeatmap
+            Plugin.Log.Info($"[StartStandardLevel] Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
 
-            Plugin.Log.Info("starting level: " + bm.SerializedName());
-
-            if (bm.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
+            if (difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
             {
-                Plugin.Log.Info("starting generated 360");
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(1f, BeatmapEventType.Event15, 1));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(2f, BeatmapEventType.Event15, 2));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(3f, BeatmapEventType.Event15, 3));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(4f, BeatmapEventType.Event15, 4));
+                Plugin.Log.Info("[StartStandardLevel] Generating rotation events...");
+
+                // Generate rotation events...
+                int i = 0;
+                for(float f = difficultyBeatmap.level.songTimeOffset; f < difficultyBeatmap.level.songDuration; f += 60 / difficultyBeatmap.level.beatsPerMinute, i++)
+                {
+                    difficultyBeatmap.beatmapData.AddBeatmapEventData(new BeatmapEventData(f, BeatmapEventType.Event15, 3));
+                }
+
+                // Resort events...
+                List<BeatmapEventData> sorted = difficultyBeatmap.beatmapData.beatmapEventsData.OrderBy((e) => e.time).ToList();
+                FieldHelper.Set(difficultyBeatmap.beatmapData, "_beatmapEventsData", sorted);
+
+                Plugin.Log.Info($"[StartStandardLevel] Emitted {i} rotation events");
             }
         }
     }
 
     [HarmonyPatch(typeof(StandardLevelDetailView))]
-    [HarmonyPatch("SetContent", MethodType.Normal)]
+    [HarmonyPatch("SetContent")]
     public class LevelUpdatePatcher
     {
         static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData, bool showPlayerStats)
@@ -54,7 +63,7 @@ namespace Beat_360fyer_Plugin.Patches
 
             BeatmapCharacteristicSO customGameMode = GameModeHelper.GetGenerated360GameMode();
             CustomDifficultyBeatmapSet custom360DegreeSet = new CustomDifficultyBeatmapSet(customGameMode);
-            CustomDifficultyBeatmap[] difficulties = standard.difficultyBeatmaps.Select((e) => new CustomDifficultyBeatmap(e.level, custom360DegreeSet, e.difficulty, e.difficultyRank, e.noteJumpMovementSpeed, e.noteJumpStartBeatOffset, e.beatmapData)).ToArray();
+            CustomDifficultyBeatmap[] difficulties = standard.difficultyBeatmaps.Select((e) => new CustomDifficultyBeatmap(e.level, custom360DegreeSet, e.difficulty, e.difficultyRank, e.noteJumpMovementSpeed, e.noteJumpStartBeatOffset, e.beatmapData.GetCopy())).ToArray();
             custom360DegreeSet.SetCustomDifficultyBeatmaps(difficulties);
 
             IDifficultyBeatmapSet[] newSets = level.beatmapLevelData.difficultyBeatmapSets.AddItem(custom360DegreeSet).ToArray();
@@ -103,6 +112,27 @@ namespace Beat_360fyer_Plugin.Patches
             Plugin.Log.Info("[RefreshContent] song " + (____level?.songName ?? "null"));
 
             //__instance.actionButtonText = ____level.songName;
+        }
+    }*/
+
+    /*[HarmonyPatch(typeof(SinglePlayerLevelSelectionFlowCoordinator))]
+    [HarmonyPatch("StartLevel")]
+    class PlayButtonPatcher
+    {
+        static void Prefix(Action beforeSceneSwitchCallback, bool practice, ref LevelSelectionNavigationController ___levelSelectionNavigationController)
+        {
+            IDifficultyBeatmap bm = ___levelSelectionNavigationController.selectedDifficultyBeatmap;
+
+            Plugin.Log.Info("[StartLevel] starting level: " + bm.SerializedName());
+
+            if (bm.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
+            {
+                Plugin.Log.Info("[StartLevel] starting generated 360");
+                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(1f, BeatmapEventType.Event15, 1));
+                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(2f, BeatmapEventType.Event15, 2));
+                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(3f, BeatmapEventType.Event15, 3));
+                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(4f, BeatmapEventType.Event15, 4));
+            }
         }
     }*/
 }
