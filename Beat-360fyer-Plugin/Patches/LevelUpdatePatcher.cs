@@ -9,19 +9,6 @@ using UnityEngine;
 
 namespace Beat_360fyer_Plugin.Patches
 {
-    public static class Fields
-    {
-        public static T Get<T>(object obj, string fieldName)
-        {
-            return (T)obj.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(obj);
-        }
-
-        public static void Set(object obj, string fieldName, object value)
-        {
-            obj.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(obj, value);
-        }
-    }
-
     [HarmonyPatch(typeof(LevelCollectionViewController))]
     [HarmonyPatch("HandleLevelCollectionTableViewDidSelectLevel", MethodType.Normal)]
     class LevelSelectPatcher
@@ -40,7 +27,7 @@ namespace Beat_360fyer_Plugin.Patches
             IBeatmapLevel level3 = level as IBeatmapLevel;
             if(level3 == null)
             {
-                Plugin.Log.Info("IPreviewBeatmapLevel is not IBeatmapLevel?");
+                Plugin.Log.Info("IPreviewBeatmapLevel is not IBeatmapLevel? " + level.GetType().FullName);
                 return;
             }
 
@@ -50,7 +37,6 @@ namespace Beat_360fyer_Plugin.Patches
                 return;
             }
 
-
             IDifficultyBeatmapSet[] difficultySets = level3.beatmapLevelData.difficultyBeatmapSets;// Fields.Get<IDifficultyBeatmapSet[]>(level3.beatmapLevelData, "_difficultyBeatmapSets");
             if (difficultySets == null)
             {
@@ -58,38 +44,7 @@ namespace Beat_360fyer_Plugin.Patches
                 return;
             }
 
-            CustomLevelLoader customLevelLoader = UnityEngine.Object.FindObjectOfType<CustomLevelLoader>();
-            if (customLevelLoader == null)
-            {
-                Plugin.Log.Info("customLevelLoader is null");
-                return;
-            }
-
-            BeatmapCharacteristicCollectionSO defaultGameModes = Fields.Get<BeatmapCharacteristicCollectionSO>(customLevelLoader, "_beatmapCharacteristicCollection");
-            if (defaultGameModes == null)
-            {
-                Plugin.Log.Info("beatmapCharacteristicCollection is null");
-                return;
-            }
-
-            Plugin.Log.Info("characteristics: " + string.Join(", ", defaultGameModes.beatmapCharacteristics.Select((e) => e.serializedName)));
-            BeatmapCharacteristicSO default360GameMode = defaultGameModes.GetBeatmapCharacteristicBySerializedName("360Degree");
-            if(default360GameMode == null)
-            {
-                Plugin.Log.Info("default360GameMode is null");
-                return;
-            }
-
-            BeatmapCharacteristicSO customGameMode = BeatmapCharacteristicSO.CreateInstance<BeatmapCharacteristicSO>();
-            Fields.Set(customGameMode, "_icon", default360GameMode.icon);
-            Fields.Set(customGameMode, "_descriptionLocalizationKey", default360GameMode.descriptionLocalizationKey);
-            Fields.Set(customGameMode, "_characteristicNameLocalizationKey", default360GameMode.characteristicNameLocalizationKey);
-            Fields.Set(customGameMode, "_serializedName", GENERATED_GAME_MODE);
-            Fields.Set(customGameMode, "_compoundIdPartName", GENERATED_GAME_MODE); // What is _compoundIdPartName?
-            Fields.Set(customGameMode, "_sortingOrder", 100);
-            Fields.Set(customGameMode, "_containsRotationEvents", true);
-            Fields.Set(customGameMode, "_requires360Movement", true);
-            Fields.Set(customGameMode, "_numberOfColors", 2);
+            BeatmapCharacteristicSO customGameMode = GameModeHelper.GetGenerated360GameMode();
 
             IDifficultyBeatmapSet standard = level3.beatmapLevelData.difficultyBeatmapSets.FirstOrDefault((e) => e.beatmapCharacteristic.serializedName == "Standard");
             if (standard == null)
@@ -104,7 +59,7 @@ namespace Beat_360fyer_Plugin.Patches
             custom360DegreeSet.SetCustomDifficultyBeatmaps(difficulties);
 
             difficultySets = difficultySets.AddToArray(custom360DegreeSet);
-            Fields.Set(level3.beatmapLevelData, "_difficultyBeatmapSets", difficultySets);
+            FieldHelper.Set(level3.beatmapLevelData, "_difficultyBeatmapSets", difficultySets);
 
             Plugin.Log.Info("created generated 360 gamemode");
         }
