@@ -9,6 +9,16 @@ using UnityEngine;
 
 namespace Beat_360fyer_Plugin.Patches
 {
+    [HarmonyPatch(typeof(SinglePlayerLevelSelectionFlowCoordinator))]
+    [HarmonyPatch("StartLevel")]
+    class PlayButtonPatcher
+    {
+        static void Prefix(Action beforeSceneSwitchCallback, bool practice, ref LevelSelectionNavigationController ___levelSelectionNavigationController)
+        {
+            Plugin.Log.Info("starting level: " + ___levelSelectionNavigationController.selectedDifficultyBeatmap.SerializedName());
+        }
+    }
+
     [HarmonyPatch(typeof(LevelCollectionViewController))]
     [HarmonyPatch("HandleLevelCollectionTableViewDidSelectLevel", MethodType.Normal)]
     class LevelSelectPatcher
