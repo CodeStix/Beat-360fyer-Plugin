@@ -22,49 +22,59 @@ namespace Beat_360fyer_Plugin.Patches
             if (difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
             {
                 Plugin.Log.Info("[StartStandardLevel] Generating rotation events...");
-                int count = 0;
+
+
+                // The minimum amount of time between each rotation event
+                const float MIN_ROTATION_INTERVAL = 0.5f;
+                // The amount of rotations to bottleneck the rotation event at
+                const int BOTTLENECK_ROTATIONS = 12;
+                // The amount of rotations before stopping rotation events
+                const int LIMIT_ROTATIONS = 30;
+
+                int eventCount = 0;
+                int rotation = 0;
 
                 // Negative numbers rotate to the left, positive to the right
                 void Rotate(float time, int amount)
                 {
-                    if (amount == 0) 
+                    if (amount == 0 || rotation + amount > LIMIT_ROTATIONS || rotation + amount < -LIMIT_ROTATIONS) 
                         return;
-                    count++;
+                    rotation += amount;
+                    eventCount++;
                     difficultyBeatmap.beatmapData.AddBeatmapEventData(new BeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
                 }
 
                 // Generate rotation events
                 // difficultyBeatmap.beatmapData.beatmapObjectsData MUST BE SORTED!
 
-                // The minimum amount of time between each rotation event
-                const float MIN_ROTATION_INTERVAL = 0.5f;
-                // The amount of rotations to bottleneck the rotation event at
-                const int BOTTLENECK_ROTATIONS = 12;
-                // The amount of rotations before limiting rotation events
-                const int LIMIT_ROTATIONS = 30;
-
                 float minTimeFrame = 60 / difficultyBeatmap.level.beatsPerMinute;
                 while (minTimeFrame < MIN_ROTATION_INTERVAL)
                     minTimeFrame *= 2;
 
                 float start = difficultyBeatmap.level.songTimeOffset;
-                int offset = 0;
+                
                 bool favorDirection = false; // false is left, true is right
                 List<NoteData> lastNotes = new List<NoteData>();
+                List<ObstacleData> obstacles = new List<ObstacleData>();
                 foreach (BeatmapObjectData data in difficultyBeatmap.beatmapData.beatmapObjectsData)
                 {
-                    if (data.time >= start + minTimeFrame)
+                    while (data.time >= start + minTimeFrame)
                     {
+                        if (lastNotes.Count == 0)
+                        {
+                            start += minTimeFrame;
+                            continue;
+                        }
+                        float notesPerSecond = lastNotes.Count / minTimeFrame;
+
                         int leftCount = lastNotes.Count((e) => (e.cutDirection == NoteCutDirection.Left && e.noteLineLayer != NoteLineLayer.Top) || e.cutDirection == NoteCutDirection.DownLeft || e.cutDirection == NoteCutDirection.UpLeft || e.lineIndex == 0 || e.lineIndex == 1);
                         int rightCount = lastNotes.Count((e) => (e.cutDirection == NoteCutDirection.Right && e.noteLineLayer != NoteLineLayer.Top) || e.cutDirection == NoteCutDirection.DownRight || e.cutDirection == NoteCutDirection.UpRight || e.lineIndex == 2 || e.lineIndex == 3);
 
-                        int dir = -leftCount + rightCount;
-
                         // Limit rotations
-                        if (offset < -BOTTLENECK_ROTATIONS)
-                            favorDirection = true;
-                        else if (offset > BOTTLENECK_ROTATIONS)
-                            favorDirection = false;
+                        if (rotation < -BOTTLENECK_ROTATIONS)
+                            favorDirection = true; // Prefer going to the right when moved a lot to the left
+                        else if (rotation > BOTTLENECK_ROTATIONS)
+                            favorDirection = false; // Prefer going to the left when moved a lot to the right
 
                         // Favor previous direction
                         if (favorDirection) 
@@ -72,28 +82,41 @@ namespace Beat_360fyer_Plugin.Patches
                         else
                             leftCount++;
 
-                        if (dir < -1 && offset >= -LIMIT_ROTATIONS)
+                        int dir = -leftCount + rightCount;
+                        if (dir <= -1)
                         {
-                            Rotate(data.time, dir / 4);
-                            offset += dir / 4;
+                            Rotate(data.time, dir / 4 - 1);
                             favorDirection = false;
-                            Plugin.Log.Info($"[StartStandardLevel] Go left {-(leftCount / 4 + 1)}");
+                            Plugin.Log.Info($"[StartStandardLevel] Go left {-(leftCount / 4 + 1)} ({notesPerSecond} nps)");
                         }
-                        else if (dir > 1 && offset <= LIMIT_ROTATIONS)
+                        else if (dir >= 1)
                         {
-                            Rotate(data.time, dir / 4);
-                            offset += dir / 4;
+                            Rotate(data.time, dir / 4 + 1);
                             favorDirection = true;
-                            Plugin.Log.Info($"[StartStandardLevel] Go right {(rightCount/ 4 + 1)}");
+                            Plugin.Log.Info($"[StartStandardLevel] Go right {(rightCount/ 4 + 1)} ({notesPerSecond} nps)");
                         }
-                        else if (leftCount == rightCount && rightCount >= 2)
+                        else if (dir == 0)
                         {
-                            Rotate(data.time, favorDirection ? 1 : -1);
-                            Plugin.Log.Info($"[StartStandardLevel] No l {leftCount}, r {rightCount} ({lastNotes.Count})");
+                            int count = rightCount;
+                            if (count >= 2 && count < 8)
+                            {
+                                Rotate(data.time, favorDirection ? 1 : -1);
+                                Plugin.Log.Info($"[StartStandardLevel] No1 c {count} ({lastNotes.Count}) ({notesPerSecond} nps)");
+                            }
+                            else if (count >= 8)
+                            {
+                                bool d = false;
+                                foreach(NoteData n in lastNotes)
+                                {
+                                    Rotate(n.time - 0.015f, d ? -1 : 1);
+                                    d = !d;
+                                }
+                                Plugin.Log.Info($"[StartStandardLevel] No2 c {count} ({lastNotes.Count}) ({notesPerSecond} nps)");
+                            }
                         }
 
                         lastNotes.Clear();
-                        start = data.time;
+                        start += minTimeFrame;
                     }
 
                     if (data is NoteData note)
@@ -102,8 +125,7 @@ namespace Beat_360fyer_Plugin.Patches
                     }
                     else if (data is ObstacleData obstacle)
                     {
-
-                        // cut off walls
+                        obstacles.Add(obstacle);
                     }
                 }
 
@@ -111,7 +133,7 @@ namespace Beat_360fyer_Plugin.Patches
                 List<BeatmapEventData> sorted = difficultyBeatmap.beatmapData.beatmapEventsData.OrderBy((e) => e.time).ToList();
                 FieldHelper.Set(difficultyBeatmap.beatmapData, "_beatmapEventsData", sorted);
 
-                Plugin.Log.Info($"[StartStandardLevel] Emitted {count} rotation events");
+                Plugin.Log.Info($"[StartStandardLevel] Emitted {eventCount} rotation events");
             }
         }
     }
