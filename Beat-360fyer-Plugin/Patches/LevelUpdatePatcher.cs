@@ -30,10 +30,10 @@ namespace Beat_360fyer_Plugin.Patches
                 const int LIMIT_ROTATIONS = 28;
                 // Enable the spin effect when no notes are coming
                 const bool ENABLE_SPIN = true;
-                const float SPIN_STEP_TIME = 0.03f;
+                const float SPIN_TOTAL_TIME = 0.4f;
                 // Amount of time in seconds to cut of the front/back of a wall when rotating towards it
-                const float WALL_START_CUT = 0.25f;
-                const float WALL_END_CUT = 0.65f;
+                const float WALL_START_CUT = 0.065f;
+                const float WALL_END_CUT = 0.125f;
                 // Maximum amount of rotation events per second
                 const int MAX_ROTATIONS_PER_SECOND = 8;
 
@@ -47,6 +47,8 @@ namespace Beat_360fyer_Plugin.Patches
                 bool previousDirection = false;
                 // The time of the previous rotation event that was emitted
                 float previousRotationTime = 0f;
+                // Time of previous note
+                float spinTimer = float.MaxValue;
 
                 // Negative numbers rotate to the left, positive to the right
                 void Rotate(float time, int amount)
@@ -72,10 +74,8 @@ namespace Beat_360fyer_Plugin.Patches
                 float beatDuration = 60f / difficultyBeatmap.level.beatsPerMinute;
                 // Start time of current fragment, fragment will be of size deltaTime
                 float start = difficultyBeatmap.level.songTimeOffset;
-                // Time of last spin or last note
-                float spinTimer = float.MaxValue;
 
-                Plugin.Log.Info($"[StartStandardLevel] Start, beatInterval={beatDuration} start={start}");
+                Plugin.Log.Info($"[StartStandardLevel] Start, bpm={difficultyBeatmap.level.beatsPerMinute} beatDuration={beatDuration} start={start}");
 
                 List<BeatmapObjectData> objects = new List<BeatmapObjectData>(difficultyBeatmap.beatmapData.beatmapObjectsData);
                 List<ObstacleData> obstacles = objects.Where((e) => e is ObstacleData).Select((e) => (ObstacleData)e).ToList();
@@ -91,15 +91,30 @@ namespace Beat_360fyer_Plugin.Patches
                         currentNotes.Add(notes[i]);
                     }
 
-                    // All the currentNotes have the same time ~
+                    // All the currentNotes have around the same time (negligible, just use the first note's time)
                     float time = currentNotes[0].time;
+                    
+                    // Bottleneck rotation events
                     if ((time - previousRotationTime) * beatDuration < 1f / MAX_ROTATIONS_PER_SECOND)
                     {
-                        Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
-                        // Bottleneck rotation events
+                        //Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
+                        spinTimer = time;
                         continue;
                     }
 
+                    // Spin effect
+                    if (ENABLE_SPIN && (time - spinTimer) * beatDuration >= SPIN_TOTAL_TIME)
+                    {
+                        Plugin.Log.Info($"Spin effect at {spinTimer}: ({time} - {spinTimer}) * {beatDuration} = {(time - spinTimer) * beatDuration}");
+                        float spinStep = SPIN_TOTAL_TIME / 24 / beatDuration;
+                        int spinDirection = previousDirection ? -1 : 1;
+                        for (int s = 0; s < 24; s++)
+                        {
+                            Rotate(spinTimer + spinStep * s, spinDirection);
+                        }
+                    }
+
+                    // Amount of total notes, notes pointing to the left/right
                     int count = currentNotes.Count;
                     int leftCount = currentNotes.Count((e) =>
                             e.cutDirection == NoteCutDirection.DownLeft
@@ -112,7 +127,7 @@ namespace Beat_360fyer_Plugin.Patches
                         || e.cutDirection == NoteCutDirection.UpRight
                         || ((e.lineIndex == 2 || e.lineIndex == 3) && (e.cutDirection != NoteCutDirection.Left && e.cutDirection != NoteCutDirection.DownLeft && e.cutDirection != NoteCutDirection.UpLeft) && e.noteLineLayer == NoteLineLayer.Base));
 
-                    Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
+                    //Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
 
                     int dir = -leftCount + rightCount;
                     if (dir < 0)
@@ -127,6 +142,8 @@ namespace Beat_360fyer_Plugin.Patches
                     {
                         Rotate(time, previousDirection ? -1 : 1);
                     }
+
+                    spinTimer = time;
                 }
   
                 // Cut walls, walls will be cut when a rotation event is emitted
@@ -134,7 +151,7 @@ namespace Beat_360fyer_Plugin.Patches
                 {
                     foreach((float cutTime, int cutAmount) in wallCutMoments)
                     {
-                        // If wall is uncomfortable for 360Degree mode
+                        // If wall is uncomfortable for 360Degree mode, remove it
                         if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.obstacleType == ObstacleType.FullHeight && ob.lineIndex == 0 && ob.width > 1))
                         {
                             // TODO: Wall is not fun in 360, remove it
