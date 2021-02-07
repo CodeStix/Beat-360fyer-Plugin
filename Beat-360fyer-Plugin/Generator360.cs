@@ -15,7 +15,7 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
         /// </summary>
-        public float RotationDivider { get; set; } = 0.4f;
+        public float RotationDivider { get; set; } = 0.15f;
         /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
@@ -23,7 +23,7 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// The amount of rotations before preffering the other direction
         /// </summary>
-        public int BottleneckRotations { get; set; } = 12;
+        public int BottleneckRotations { get; set; } = 16;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -31,7 +31,7 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// The total time 1 spin takes in seconds.
         /// </summary>
-        public float TotalSpinTime { get; set; } = 0.5f;
+        public float TotalSpinTime { get; set; } = 0.25f;
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
@@ -123,21 +123,6 @@ namespace Beat_360fyer_Plugin
                 if (!(time < nextObjectTime) || ((nextObjectTime - time) < 0.001f))
                     Plugin.Log.Warn($"Assert failed: time < nextObjectTime, time={time}, nextObjectTime={nextObjectTime}, nextObjectTime - time = {nextObjectTime - time}");
 #endif
-
-                // Spin effect
-                if (EnableSpin && (nextObjectTime - time) * beatDuration >= TotalSpinTime * 1.2f)
-                {
-                    Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
-                    float spinStep = TotalSpinTime / 24 / beatDuration;
-                    int spinDirection = previousDirection ? -1 : 1;
-                    for (int s = 0; s < 24; s++)
-                    {
-                        Rotate(time + spinStep * s, spinDirection);
-                    }
-                    // Do not emit more rotation events after this
-                    continue; 
-                }
-
                 // Amount of total notes, notes pointing to the left/right
                 int count = currentNotes.Count;
                 int leftCount = currentNotes.Count((e) =>
@@ -163,6 +148,31 @@ namespace Beat_360fyer_Plugin
                 if (divider < 1) 
                     divider = 1;
                 int direction = -leftCount + rightCount;
+
+                // Spin effect
+                if (EnableSpin && (nextObjectTime - time) * beatDuration >= TotalSpinTime * 1.2f)
+                {
+                    Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
+                    const int SPIN_STEP = 2;
+                    float spinStep = TotalSpinTime / (24 / SPIN_STEP) / beatDuration;
+
+                    int spinDirection;
+                    if (direction == 0)
+                        spinDirection = previousDirection ? -SPIN_STEP : SPIN_STEP;
+                    else if (direction < 0)
+                        spinDirection = -SPIN_STEP;
+                    else // direction > 0
+                        spinDirection = SPIN_STEP;
+
+                    for (int s = 0; s < 24 / SPIN_STEP; s++)
+                    {
+                        Rotate(time + spinStep * s, spinDirection);
+                    }
+                    // Do not emit more rotation events after this
+                    continue;
+                }
+
+                // Normal rotation event
                 if (direction < 0)
                 {
                     Rotate(time, direction / divider - 1);

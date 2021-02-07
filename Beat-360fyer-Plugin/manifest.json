@@ -4,7 +4,7 @@
   "name": "Beat-360fyer-Plugin",
   "author": "codestix",
   "version": "0.0.1",
-  "description": "A Beat Saber plugin to play all of your songs in 360 degrees automatically.",
+  "description": "A Beat Saber plugin to play any song in 360 degrees automatically.",
   "gameVersion": "1.11.1",
   "dependsOn": {
     "BSIPA": "^4.0.5",
