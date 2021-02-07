@@ -8,15 +8,17 @@ namespace Beat_360fyer_Plugin
 {
     public class Generator360
     {
+        // When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
+        public float RotationDivider { get; set; } = 0.5f;
         // The amount of rotations before stopping rotation events (rip cable otherwise)
-        public int LimitRotations { get; set; }= 28;
+        public int LimitRotations { get; set; } = 28;
         // Enable the spin effect when no notes are coming
         public bool EnableSpin { get; set; } = true;
         public float TotalSpinTime { get; set; } = 0.4f;
         // Amount of time in seconds to cut of the front/back of a wall when rotating towards it
         public float WallFrontCut { get; set; } = 0.065f;
         public float WallBackCut { get; set; } = 0.125f;
-        // Maximum amount of rotation events per second
+        // Maximum amount of rotation events per second (not per beat)
         public int MaxRotationsPerSecond { get; set; } = 8;
 
         public void Generate(IDifficultyBeatmap bm)
@@ -31,8 +33,6 @@ namespace Beat_360fyer_Plugin
             bool previousDirection = false;
             // The time of the previous rotation event that was emitted
             float previousRotationTime = 0f;
-            // Time of previous note
-            float spinTimer = float.MaxValue;
 
             // Negative numbers rotate to the left, positive to the right
             void Rotate(float time, int amount)
@@ -86,7 +86,6 @@ namespace Beat_360fyer_Plugin
                 // If only bombs/obstacles
                 if (currentNotes.Count == 0)
                 {
-                    spinTimer = time;
                     continue;
                 }
 
@@ -94,20 +93,29 @@ namespace Beat_360fyer_Plugin
                 if ((time - previousRotationTime) * beatDuration < 1f / MaxRotationsPerSecond)
                 {
                     //Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
-                    spinTimer = time;
                     continue;
                 }
 
+                // Get next object's time, nextNoteTime cannot be zero
+                float nextObjectTime = i >= objects.Count ? float.MaxValue : objects[i].time;
+
+#if DEBUG
+                if (!(time < nextObjectTime) || ((nextObjectTime - time) < 0.001f))
+                    Plugin.Log.Warn($"Assert failed: time < nextObjectTime, time={time}, nextObjectTime={nextObjectTime}, nextObjectTime - time = {nextObjectTime - time}");
+#endif
+
                 // Spin effect
-                if (EnableSpin && (time - spinTimer) * beatDuration >= TotalSpinTime * 1.5f)
+                if (EnableSpin && (nextObjectTime - time) * beatDuration >= TotalSpinTime * 1.2f)
                 {
-                    Plugin.Log.Info($"[Generator] Spin effect at {spinTimer}: ({time} - {spinTimer}) * {beatDuration} = {(time - spinTimer) * beatDuration}");
+                    Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
                     float spinStep = TotalSpinTime / 24 / beatDuration;
                     int spinDirection = previousDirection ? -1 : 1;
                     for (int s = 0; s < 24; s++)
                     {
-                        Rotate(spinTimer + spinStep * s, spinDirection);
+                        Rotate(time + spinStep * s, spinDirection);
                     }
+                    // Do not emit more rotation events after this
+                    continue; 
                 }
 
                 // Amount of total notes, notes pointing to the left/right
@@ -123,23 +131,34 @@ namespace Beat_360fyer_Plugin
                     || e.cutDirection == NoteCutDirection.UpRight
                     || ((e.lineIndex == 2 || e.lineIndex == 3) && (e.cutDirection != NoteCutDirection.Left && e.cutDirection != NoteCutDirection.DownLeft && e.cutDirection != NoteCutDirection.UpLeft) && e.noteLineLayer == NoteLineLayer.Base));
 
-                //Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
-
-                int dir = -leftCount + rightCount;
-                if (dir < 0)
+                // RotationDivider: 1f       | 2f
+                // timeDiffInSec  | divider  | divider
+                // 2              | 0.5      | 1
+                // 1              | 1        | 2
+                // 0.5            | 2        | 4
+                // 0.25           | 4        | 8
+                // 0.125          | 8        | 16
+                // 0.1            | 16       | 32
+                int divider = (int)(RotationDivider / ((nextObjectTime - time) * beatDuration));
+                if (divider < 1) 
+                    divider = 1;
+                int direction = -leftCount + rightCount;
+                if (direction < 0)
                 {
-                    Rotate(time, dir / 4 - 1);
+                    Rotate(time, direction / divider - 1);
                 }
-                else if (dir > 0)
+                else if (direction > 0)
                 {
-                    Rotate(time, dir / 4 + 1);
+                    Rotate(time, direction / divider + 1);
                 }
                 else // dir == 0
                 {
-                    Rotate(time, previousDirection ? -1 : 1);
+                    int c = count / divider;
+                    Rotate(time, previousDirection ? -c : c);
                 }
 
-                spinTimer = time;
+                Plugin.Log.Info($"[{time}] Divider is {divider} (timeTillNextObject={nextObjectTime - time}, count={count}, leftCount={leftCount}, rightCount={rightCount})");
+                //Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
             }
 
             // Cut walls, walls will be cut when a rotation event is emitted
