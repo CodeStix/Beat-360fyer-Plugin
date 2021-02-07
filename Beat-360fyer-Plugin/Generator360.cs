@@ -8,18 +8,38 @@ namespace Beat_360fyer_Plugin
 {
     public class Generator360
     {
-        // When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
-        public float RotationDivider { get; set; } = 0.5f;
-        // The amount of rotations before stopping rotation events (rip cable otherwise)
-        public int LimitRotations { get; set; } = 28;
-        // Enable the spin effect when no notes are coming
-        public bool EnableSpin { get; set; } = true;
-        public float TotalSpinTime { get; set; } = 0.4f;
-        // Amount of time in seconds to cut of the front/back of a wall when rotating towards it
-        public float WallFrontCut { get; set; } = 0.065f;
-        public float WallBackCut { get; set; } = 0.125f;
-        // Maximum amount of rotation events per second (not per beat)
+        /// <summary>
+        /// Maximum amount of rotation events per second (not per beat) 
+        /// </summary>
         public int MaxRotationsPerSecond { get; set; } = 8;
+        /// <summary>
+        /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
+        /// </summary>
+        public float RotationDivider { get; set; } = 0.4f;
+        /// <summary>
+        /// The amount of rotations before stopping rotation events (rip cable otherwise) 
+        /// </summary>
+        public int LimitRotations { get; set; } = 28;
+        /// <summary>
+        /// The amount of rotations before preffering the other direction
+        /// </summary>
+        public int BottleneckRotations { get; set; } = 12;
+        /// <summary>
+        /// Enable the spin effect when no notes are coming.
+        /// </summary>
+        public bool EnableSpin { get; set; } = true;
+        /// <summary>
+        /// The total time 1 spin takes in seconds.
+        /// </summary>
+        public float TotalSpinTime { get; set; } = 0.5f;
+        /// <summary>
+        /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
+        /// </summary>
+        public float WallFrontCut { get; set; } = 0.065f;
+        /// <summary>
+        /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
+        /// </summary>
+        public float WallBackCut { get; set; } = 0.125f;
 
         public void Generate(IDifficultyBeatmap bm)
         {
@@ -154,7 +174,18 @@ namespace Beat_360fyer_Plugin
                 else // dir == 0
                 {
                     int c = count / divider;
-                    Rotate(time, previousDirection ? -c : c);
+                    if (rotation <= -BottleneckRotations)
+                    {
+                        Rotate(time, c);
+                    }
+                    else if (rotation >= BottleneckRotations)
+                    {
+                        Rotate(time, -c);
+                    }
+                    else
+                    {
+                        Rotate(time, previousDirection ? -c : c);
+                    }
                 }
 
                 Plugin.Log.Info($"[{time}] Divider is {divider} (timeTillNextObject={nextObjectTime - time}, count={count}, leftCount={leftCount}, rightCount={rightCount})");
