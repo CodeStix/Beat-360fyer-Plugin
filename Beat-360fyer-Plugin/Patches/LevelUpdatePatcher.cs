@@ -72,10 +72,8 @@ namespace Beat_360fyer_Plugin.Patches
 
                 // The time of 1 beat in seconds
                 float beatDuration = 60f / difficultyBeatmap.level.beatsPerMinute;
-                // Start time of current fragment, fragment will be of size deltaTime
-                float start = difficultyBeatmap.level.songTimeOffset;
 
-                Plugin.Log.Info($"[StartStandardLevel] Start, bpm={difficultyBeatmap.level.beatsPerMinute} beatDuration={beatDuration} start={start}");
+                Plugin.Log.Info($"[StartStandardLevel] Start, bpm={difficultyBeatmap.level.beatsPerMinute} beatDuration={beatDuration}");
 
                 List<BeatmapObjectData> objects = new List<BeatmapObjectData>(difficultyBeatmap.beatmapData.beatmapObjectsData);
                 List<ObstacleData> obstacles = objects.Where((e) => e is ObstacleData).Select((e) => (ObstacleData)e).ToList();
@@ -192,6 +190,8 @@ namespace Beat_360fyer_Plugin.Patches
                         {
                             // TODO: Remove wall
                             Plugin.Log.Warn($"Need to remove wall at {ob.time}, has negative duration (duration is {ob.duration})");
+                            ob.MoveTime(0f);
+                            FieldHelper.SetProperty(ob, nameof(ob.duration), 0f);
                         }
                     }
                 }
