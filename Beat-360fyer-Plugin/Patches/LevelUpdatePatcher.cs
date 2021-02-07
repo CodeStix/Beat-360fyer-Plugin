@@ -26,8 +26,6 @@ namespace Beat_360fyer_Plugin.Patches
                 // Generate rotation events
                 // difficultyBeatmap.beatmapData.beatmapObjectsData MUST BE SORTED!
 
-                // The amount of rotations to bottleneck the rotation event at (will prefer to go to the other direction)
-                const int BOTTLENECK_ROTATIONS = 10;
                 // The amount of rotations before stopping rotation events
                 const int LIMIT_ROTATIONS = 28;
                 // Enable the spin effect when no notes are coming
@@ -43,6 +41,10 @@ namespace Beat_360fyer_Plugin.Patches
                 int rotation = 0;
                 // Moments where a wall should be cut
                 List<(float, int)> wallCutMoments = new List<(float, int)>();
+                // Previous spin direction, false is left, true is right
+                bool previousDirection = false;
+                // The time of the previous rotation event that was emitted
+                float previousRotationTime = 0f;
 
                 // Negative numbers rotate to the left, positive to the right
                 void Rotate(float time, int amount)
@@ -55,7 +57,9 @@ namespace Beat_360fyer_Plugin.Patches
                         amount = 4;
                     if (rotation + amount > LIMIT_ROTATIONS || rotation + amount < -LIMIT_ROTATIONS) 
                         return;
-                    time += 0.005f; // Small delay to place the rotation event after the note
+                    previousDirection = amount > 0;
+                    previousRotationTime = time;
+                    time += 0.002f; // Small delay to place the rotation event after the note
                     rotation += amount;
                     eventCount++;
                     wallCutMoments.Add((time, amount));
@@ -63,155 +67,73 @@ namespace Beat_360fyer_Plugin.Patches
                 }
 
                 // Loop time increment, will be a around a second that is aligned with beatsPerMinute
-                float alignedSecond = 60f / difficultyBeatmap.level.beatsPerMinute;
-                while (alignedSecond > 1.25f)
-                    alignedSecond *= 0.5f;
-                while (alignedSecond < 0.75f)
-                    alignedSecond *= 2;
+                //float alignedSecond = 60f / difficultyBeatmap.level.beatsPerMinute;
+                //while (alignedSecond > 1.25f)
+                //    alignedSecond *= 0.5f;
+                //while (alignedSecond < 0.75f)
+                //    alignedSecond *= 2;
 
+                // The time of 1 beat in seconds
+                float beatDuration = 60f / difficultyBeatmap.level.beatsPerMinute;
                 // Start time of current fragment, fragment will be of size deltaTime
                 float start = difficultyBeatmap.level.songTimeOffset;
                 // Time of last spin or last note
                 float spinTimer = float.MaxValue;
 
-                Plugin.Log.Info($"[StartStandardLevel] Start, deltaTime={alignedSecond} start={start}");
+                Plugin.Log.Info($"[StartStandardLevel] Start, beatInterval={beatDuration} start={start}");
 
-                // Previous spin direction, false is left, true is right
-                bool previousDirection = false;
-                List<NoteData> lastNotes = new List<NoteData>();
-                List<ObstacleData> obstacles = new List<ObstacleData>();
-                foreach (BeatmapObjectData currentNote in difficultyBeatmap.beatmapData.beatmapObjectsData)
+                List<BeatmapObjectData> objects = new List<BeatmapObjectData>(difficultyBeatmap.beatmapData.beatmapObjectsData);
+                List<ObstacleData> obstacles = objects.Where((e) => e is ObstacleData).Select((e) => (ObstacleData)e).ToList();
+                List<NoteData> notes = objects.Where((e) => e is NoteData).Select((e) => (NoteData)e).ToList();
+
+                List<NoteData> currentNotes = new List<NoteData>();
+                for(int i = 0; i < notes.Count; i++)
                 {
-                    while (currentNote.time >= start + alignedSecond)
+                    currentNotes.Clear();
+                    float firstTime = notes[i].time;
+                    for (; i < notes.Count && (notes[i].time - firstTime) * beatDuration <= 0.01f; i++)
                     {
-                        // A 'second' (aligned to beatsPerMinute) has passed
-
-                        if (ENABLE_SPIN && start - spinTimer >= SPIN_STEP_TIME * 24)
-                        {
-                            // Spin effect
-                            Plugin.Log.Info($"[StartStandardLevel] Spin effect at {spinTimer} ({start - spinTimer} > {SPIN_STEP_TIME * 24})");
-                            for (int i = 0; i < 24; i++)
-                            {
-                                Rotate(spinTimer + SPIN_STEP_TIME * i, previousDirection ? 1 : -1);
-                            }
-                            spinTimer = float.MaxValue;
-                        }
-
-                        // lastNotes.Count = amount of notes last second
-                        if (lastNotes.Count == 0)
-                        {
-                            start += alignedSecond;
-                            continue;
-                        }
-
-                        // Total notes and amount of notes that point to the left and right, including floor notes on their side
-                        int count = lastNotes.Count;
-                        int leftCount = lastNotes.Count((e) => 
-                            e.cutDirection == NoteCutDirection.DownLeft 
-                            || e.cutDirection == NoteCutDirection.Left
-                            || e.cutDirection == NoteCutDirection.UpLeft 
-                            || ((e.lineIndex == 0 || e.lineIndex == 1) && (e.cutDirection != NoteCutDirection.Right && e.cutDirection != NoteCutDirection.DownRight && e.cutDirection != NoteCutDirection.UpRight) && e.noteLineLayer == NoteLineLayer.Base)); // (e.cutDirection == NoteCutDirection.Left && e.noteLineLayer != NoteLineLayer.Top) || 
-                        int rightCount = lastNotes.Count((e) => 
-                            e.cutDirection == NoteCutDirection.DownRight 
-                            || e.cutDirection == NoteCutDirection.Right
-                            || e.cutDirection == NoteCutDirection.UpRight
-                            || ((e.lineIndex == 2 || e.lineIndex == 3) && (e.cutDirection != NoteCutDirection.Left && e.cutDirection != NoteCutDirection.DownLeft && e.cutDirection != NoteCutDirection.UpLeft) && e.noteLineLayer == NoteLineLayer.Base));
-
-                        // Limit rotations
-                        if (rotation < -BOTTLENECK_ROTATIONS)
-                            rightCount += -rotation / BOTTLENECK_ROTATIONS; // Prefer going to the right when moved a lot to the left
-                        else if (rotation > BOTTLENECK_ROTATIONS)
-                            leftCount += rotation / BOTTLENECK_ROTATIONS; // Prefer going to the left when moved a lot to the right
-
-                        // Favor previous direction
-                        //if (previousDirection) 
-                        //    rightCount++;
-                        //else
-                        //    leftCount++;
-
-                        int leftRight = -leftCount + rightCount;
-                        if (leftRight <= -2)
-                        {
-                            Rotate(lastNotes[count - 1].time, -(leftCount / 6 + 1));
-                            previousDirection = false;
-                            Plugin.Log.Info($"[StartStandardLevel] <- {-(leftCount / 4 + 1)} ({count} nps)");
-                        }
-                        else if (leftRight >= 2)
-                        {
-                            Rotate(lastNotes[count - 1].time, rightCount / 6 + 1);
-                            previousDirection = true;
-                            Plugin.Log.Info($"[StartStandardLevel] -> {(rightCount / 4 + 1)} ({count} nps)");
-                        }
-                        else if (count <= 2) 
-                        { 
-                            if (eventCount / start < 1f)
-                            {
-                                // If not a lot of rotation events have been spawned
-                                int n = UnityEngine.Random.Range(1, 3);
-                                Rotate(lastNotes[0].time, previousDirection ? n : -n);
-                                Plugin.Log.Info($"[StartStandardLevel] <2 n {(previousDirection ? n : -n)} {count} ({eventCount}/{start}={eventCount / start})");
-                            }
-                        }
-                        else if (count <= 8)
-                        {
-                            Rotate(lastNotes[0].time, previousDirection ? 1 : -1);
-                            Plugin.Log.Info($"[StartStandardLevel] <8 {count}");
-                        }
-                        else if (count <= 12)
-                        {
-                            bool prevDir = false;
-                            float prev = float.MinValue;
-                            int i = 0;
-                            foreach(NoteData n in lastNotes)
-                            {
-                                if (n.time - prev >= alignedSecond / 8f)
-                                {
-                                    Rotate(n.time - 0.01f, prevDir ? -1 : 1);
-                                    prevDir = !prevDir;
-                                    prev = n.time;
-                                    i++;
-                                }
-                            }
-                            Plugin.Log.Info($"[StartStandardLevel] <12 {count} ({i})");
-                        }
-                        else if (count <= 16)
-                        {
-                            bool prevDir = false;
-                            float prev = float.MinValue;
-                            int i = 0;
-                            foreach (NoteData n in lastNotes)
-                            {
-                                if (n.time - prev >= alignedSecond / 8f)
-                                {
-                                    Rotate(n.time, prevDir ? -1 : 1);
-                                    prevDir = !prevDir;
-                                    prev = n.time;
-                                    i++;
-                                }
-                            }
-                            Plugin.Log.Info($"[StartStandardLevel] <16 {count} ({i})");
-                        }
-                        else
-                        {
-                            Plugin.Log.Info($"[StartStandardLevel] >16 {count}");
-                            // Nothing, way too fast
-                        }
-                        
-                        lastNotes.Clear();
-                        start += alignedSecond;
+                        currentNotes.Add(notes[i]);
                     }
 
-                    if (currentNote is NoteData note)
+                    // All the currentNotes have the same time ~
+                    float time = currentNotes[0].time;
+                    if ((time - previousRotationTime) * beatDuration < 0.125f)
                     {
-                        spinTimer = note.time;
-                        lastNotes.Add(note);
+                        Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
+                        // Bottleneck rotation events
+                        continue;
                     }
-                    else if (currentNote is ObstacleData obstacle)
+
+                    int count = currentNotes.Count;
+                    int leftCount = currentNotes.Count((e) =>
+                            e.cutDirection == NoteCutDirection.DownLeft
+                        || e.cutDirection == NoteCutDirection.Left
+                        || e.cutDirection == NoteCutDirection.UpLeft
+                        || ((e.lineIndex == 0 || e.lineIndex == 1) && (e.cutDirection != NoteCutDirection.Right && e.cutDirection != NoteCutDirection.DownRight && e.cutDirection != NoteCutDirection.UpRight) && e.noteLineLayer == NoteLineLayer.Base)); // (e.cutDirection == NoteCutDirection.Left && e.noteLineLayer != NoteLineLayer.Top) ||
+                    int rightCount = currentNotes.Count((e) =>
+                        e.cutDirection == NoteCutDirection.DownRight
+                        || e.cutDirection == NoteCutDirection.Right
+                        || e.cutDirection == NoteCutDirection.UpRight
+                        || ((e.lineIndex == 2 || e.lineIndex == 3) && (e.cutDirection != NoteCutDirection.Left && e.cutDirection != NoteCutDirection.DownLeft && e.cutDirection != NoteCutDirection.UpLeft) && e.noteLineLayer == NoteLineLayer.Base));
+
+                    Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
+
+                    int dir = -leftCount + rightCount;
+                    if (dir < 0)
                     {
-                        obstacles.Add(obstacle);
+                        Rotate(time, dir / 4 - 1);
+                    }
+                    else if (dir > 0)
+                    {
+                        Rotate(time, dir / 4 + 1);
+                    }
+                    else // dir == 0
+                    {
+                        Rotate(time, previousDirection ? -1 : 1);
                     }
                 }
-
+  
                 // Cut walls, walls will be cut when a rotation event is emitted
                 foreach(ObstacleData ob in obstacles)
                 {
