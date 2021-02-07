@@ -31,9 +31,11 @@ namespace Beat_360fyer_Plugin.Patches
                 // Enable the spin effect when no notes are coming
                 const bool ENABLE_SPIN = true;
                 const float SPIN_STEP_TIME = 0.03f;
-                // Amount of time to cut of the front/back of a wall when rotating towards it
+                // Amount of time in seconds to cut of the front/back of a wall when rotating towards it
                 const float WALL_START_CUT = 0.25f;
                 const float WALL_END_CUT = 0.65f;
+                // Maximum amount of rotation events per second
+                const int MAX_ROTATIONS_PER_SECOND = 8;
 
                 // Amount of rotation events emitted
                 int eventCount = 0;
@@ -66,13 +68,6 @@ namespace Beat_360fyer_Plugin.Patches
                     difficultyBeatmap.beatmapData.AddBeatmapEventData(new BeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
                 }
 
-                // Loop time increment, will be a around a second that is aligned with beatsPerMinute
-                //float alignedSecond = 60f / difficultyBeatmap.level.beatsPerMinute;
-                //while (alignedSecond > 1.25f)
-                //    alignedSecond *= 0.5f;
-                //while (alignedSecond < 0.75f)
-                //    alignedSecond *= 2;
-
                 // The time of 1 beat in seconds
                 float beatDuration = 60f / difficultyBeatmap.level.beatsPerMinute;
                 // Start time of current fragment, fragment will be of size deltaTime
@@ -98,7 +93,7 @@ namespace Beat_360fyer_Plugin.Patches
 
                     // All the currentNotes have the same time ~
                     float time = currentNotes[0].time;
-                    if ((time - previousRotationTime) * beatDuration < 0.125f)
+                    if ((time - previousRotationTime) * beatDuration < 1f / MAX_ROTATIONS_PER_SECOND)
                     {
                         Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
                         // Bottleneck rotation events
@@ -148,10 +143,11 @@ namespace Beat_360fyer_Plugin.Patches
                         // If moved in direction of wall
                         else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                         {
-                            if (cutTime >= ob.time - WALL_START_CUT && cutTime < ob.time + ob.duration / 2f)
+                            float wallStartCutBeats = WALL_START_CUT / beatDuration;
+                            if (cutTime >= ob.time - wallStartCutBeats && cutTime < ob.time + ob.duration / 2f)
                             {
                                 // Cut front of wall
-                                float cut = cutTime - (ob.time - WALL_START_CUT);
+                                float cut = cutTime - (ob.time - wallStartCutBeats);
 
                                 Plugin.Log.Info($"Cut front wall at {ob.time}({ob.duration}) cut {cut}");
 
@@ -162,10 +158,11 @@ namespace Beat_360fyer_Plugin.Patches
                                 FieldHelper.SetProperty(ob, nameof(ob.duration), ob.duration - cut);
                             }
 
-                            if (cutTime >= ob.time + ob.duration / 2 && cutTime < ob.time + ob.duration + WALL_END_CUT)
+                            float wallEndCutBeats = WALL_END_CUT / beatDuration;
+                            if (cutTime >= ob.time + ob.duration / 2 && cutTime < ob.time + ob.duration + wallEndCutBeats)
                             {
                                 // Cut back of wall
-                                float cut = (ob.time + ob.duration + WALL_END_CUT) - cutTime;
+                                float cut = (ob.time + ob.duration + wallEndCutBeats) - cutTime;
 
                                 Plugin.Log.Info($"Cut back wall at {ob.time}({ob.duration}) cut {cut}");
 
