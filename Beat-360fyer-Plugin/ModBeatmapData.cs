@@ -24,9 +24,10 @@ namespace Beat_360fyer_Plugin
         public BeatmapData ToBeatmap()
         {
             BeatmapData bm = new BeatmapData(numberOfLines);
-            foreach (ModObject o in objects)
-                bm.AddBeatmapObjectData(o.ToObject());
-            foreach (ModEvent o in events)
+            foreach (ModObject o in objects.OrderBy((e) => e.time))
+                if (!(o is ModObstacleData ob && ob.duration <= 0f))
+                    bm.AddBeatmapObjectData(o.ToObject());
+            foreach (ModEvent o in events.OrderBy((e) => e.time))
                 bm.AddBeatmapEventData(o.ToEvent());
             return bm;
         }
@@ -69,6 +70,12 @@ namespace Beat_360fyer_Plugin
             this.lineIndex = lineIndex;
         }
 
+        public ModObject(BeatmapObjectData data)
+        {
+            this.time = data.time;
+            this.lineIndex = data.lineIndex;
+        }
+
         public static ModObject FromObject(BeatmapObjectData obj)
         {
             if (obj is NoteData note)
@@ -89,7 +96,7 @@ namespace Beat_360fyer_Plugin
         public float duration;
         public int width;
 
-        public ModObstacleData(ObstacleData data) : base(data.time, data.lineIndex)
+        public ModObstacleData(ObstacleData data) : base(data)
         {
             obstacleType = data.obstacleType;
             duration = data.duration;
@@ -117,7 +124,7 @@ namespace Beat_360fyer_Plugin
 
         public bool IsBomb => cutDirection == NoteCutDirection.None;
 
-        public ModNoteData(NoteData data) : base(data.time, data.lineIndex)
+        public ModNoteData(NoteData data) : base(data)
         {
             cutDirection = data.cutDirection;
             noteLineLayer = data.noteLineLayer;
@@ -142,7 +149,7 @@ namespace Beat_360fyer_Plugin
         public OffsetDirection offsetDirection;
         public NoteLineLayer noteLineLayer;
 
-        public ModWaypointData(WaypointData data) : base(data.time, data.lineIndex)
+        public ModWaypointData(WaypointData data) : base(data)
         {
             offsetDirection = data.offsetDirection;
             noteLineLayer = data.noteLineLayer;

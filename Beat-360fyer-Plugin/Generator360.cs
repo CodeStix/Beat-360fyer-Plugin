@@ -43,6 +43,8 @@ namespace Beat_360fyer_Plugin
 
         public void Generate(IDifficultyBeatmap bm)
         {
+            ModBeatmapData data = new ModBeatmapData(bm.beatmapData);
+
             // Amount of rotation events emitted
             int eventCount = 0;
             // Current rotation
@@ -59,8 +61,6 @@ namespace Beat_360fyer_Plugin
                 alignedMinRotationInterval *= 0.5f;
             while (alignedMinRotationInterval < 1f / MaxRotationsPerSecond * 0.75f)
                 alignedMinRotationInterval *= 2f;
-
-            Plugin.Log.Info($"Aligned {alignedMinRotationInterval} from {1f / MaxRotationsPerSecond} (bpm={bm.level.beatsPerMinute}, maxRot={MaxRotationsPerSecond})");
 
             // Negative numbers rotate to the left, positive to the right
             void Rotate(float time, int amount)
@@ -79,35 +79,30 @@ namespace Beat_360fyer_Plugin
                 rotation += amount;
                 eventCount++;
                 wallCutMoments.Add((time, amount));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+
+                data.events.Add(new ModEvent(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
 
             // The time of 1 beat in seconds
             float beatDuration = 60f / bm.level.beatsPerMinute;
 
-            Plugin.Log.Info($"[Generator] Start, bpm={bm.level.beatsPerMinute} beatDuration={beatDuration}");
+            Plugin.Log.Info($"[Generator] Start, alignedMinRotationInterval={alignedMinRotationInterval} (~{1f / MaxRotationsPerSecond}) bpm={bm.level.beatsPerMinute} beatDuration={beatDuration}");
 
-            List<BeatmapObjectData> objects = new List<BeatmapObjectData>(bm.beatmapData.beatmapObjectsData);
-            List<ObstacleData> obstacles = new List<ObstacleData>();
-            List<NoteData> currentNotes = new List<NoteData>();
-            for (int i = 0; i < objects.Count; i++)
+            List<ModNoteData> currentNotes = new List<ModNoteData>();
+            for (int i = 0; i < data.objects.Count; i++)
             {
                 currentNotes.Clear();
 
                 // All the currentNotes will have around the same time (negligible, just use the first note's time)
-                float time = objects[i].time;
+                float time = data.objects[i].time;
 
-                for (; i < objects.Count && (objects[i].time - time) * beatDuration <= 0.01f; i++)
+                for (; i < data.objects.Count && (data.objects[i].time - time) * beatDuration <= 0.01f; i++)
                 {
-                    BeatmapObjectData d = objects[i];
-                    if (d is NoteData n)
+                    ModObject d = data.objects[i];
+                    if (d is ModNoteData n)
                     {
-                        if (n.cutDirection != NoteCutDirection.None && n.cutDirection != NoteCutDirection.Any) // Filter bombs and any direction notes
+                        if (!n.IsBomb && n.cutDirection != NoteCutDirection.Any) // Filter bombs and any direction notes
                             currentNotes.Add(n);
-                    }
-                    else if (d is ObstacleData o)
-                    {
-                        obstacles.Add(o);
                     }
                 }
 
@@ -124,7 +119,7 @@ namespace Beat_360fyer_Plugin
                 }
 
                 // Get next object's time, nextNoteTime cannot be zero
-                float nextObjectTime = i >= objects.Count ? float.MaxValue : objects[i].time;
+                float nextObjectTime = i >= data.objects.Count ? float.MaxValue : data.objects[i].time;
 
 #if DEBUG
                 if (!(time < nextObjectTime) || ((nextObjectTime - time) < 0.001f))
@@ -156,7 +151,7 @@ namespace Beat_360fyer_Plugin
                     divider = 1;
 
                 // Spin effect
-                if (EnableSpin && count >= 2 && (nextObjectTime - time) * beatDuration > TotalSpinTime)
+                if (EnableSpin && count >= 2 && (nextObjectTime - time) * beatDuration > TotalSpinTime * 1.25f)
                 {
                     Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
                     float spinStep = TotalSpinTime / 24 / beatDuration;
@@ -208,7 +203,7 @@ namespace Beat_360fyer_Plugin
             }
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            foreach (ObstacleData ob in obstacles)
+            foreach (ModObstacleData ob in data.objects.OfType<ModObstacleData>())
             {
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
@@ -216,7 +211,7 @@ namespace Beat_360fyer_Plugin
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.obstacleType == ObstacleType.FullHeight && ob.lineIndex == 0 && ob.width > 1))
                     {
                         // TODO: Wall is not fun in 360, remove it
-                        FieldHelper.SetProperty(ob, nameof(ob.duration), 0f);
+                        ob.duration = 0;
                     }
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -227,13 +222,10 @@ namespace Beat_360fyer_Plugin
                             // Cut front of wall
                             float cut = cutTime - (ob.time - wallStartCutBeats);
 
-                            Plugin.Log.Info($"[Generator] Cut front wall at {ob.time}({ob.duration}) cut {cut}");
+                            Plugin.Log.Info($"[Generator] Cut front wall at {ob.time} duration={ob.duration} realTime={ob.time * beatDuration} cut={cut}");
 
-                            //ob.time += cut;
-                            //FieldHelper.SetProperty(ob, nameof(ob.time), ob.time + cut);
-                            ob.MoveTime(ob.time + cut);
-                            //ob.duration -= cut;
-                            FieldHelper.SetProperty(ob, nameof(ob.duration), ob.duration - cut);
+                            ob.time += cut;
+                            ob.duration -= cut;
                         }
 
                         float wallEndCutBeats = WallBackCut / beatDuration;
@@ -242,30 +234,20 @@ namespace Beat_360fyer_Plugin
                             // Cut back of wall
                             float cut = (ob.time + ob.duration + wallEndCutBeats) - cutTime;
 
-                            Plugin.Log.Info($"[Generator] Cut back wall at {ob.time}({ob.duration}) cut {cut}");
+                            Plugin.Log.Info($"[Generator] Cut back wall at {ob.time} duration={ob.duration} realTime={ob.time * beatDuration} cut={cut}");
 
-                            //ob.duration -= cut;
-                            FieldHelper.SetProperty(ob, nameof(ob.duration), ob.duration - cut);
+                            ob.duration -= cut;
                         }
-                    }
-
-                    if (ob.duration <= 0f)
-                    {
-                        // TODO: remove wall instead of move to start
-                        ob.MoveTime(0f);
                     }
                 }
             }
 
-            //int removedWalls = objects.RemoveAll((e) => e is ObstacleData d && d.duration <= 0f);
-            //Plugin.Log.Info($"Removed {removedWalls} walls");
-
-            // Resort events...
-            // NOTE TO SELF: difficultyBeatmap.beatmapData.beatmapObjectsData/events MUST BE SORTED!
-            List<BeatmapEventData> sorted = bm.beatmapData.beatmapEventsData.OrderBy((e) => e.time).ToList();
-            FieldHelper.Set(bm.beatmapData, "_beatmapEventsData", sorted);
-
             Plugin.Log.Info($"[Generator] Emitted {eventCount} rotation events");
+
+            if (!FieldHelper.Set(bm, "_beatmapData", data.ToBeatmap()))
+            {
+                Plugin.Log.Error($"Could not replace beatmap");
+            }
         }
 
     }
