@@ -11,19 +11,19 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Maximum amount of rotation events per second (not per beat) 
         /// </summary>
-        public int MaxRotationsPerSecond { get; set; } = 8;
+        public int MaxRotationsPerSecond { get; set; } = 4;
         /// <summary>
         /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
         /// </summary>
-        public float RotationDivider { get; set; } = 0.15f;
+        public float RotationDivider { get; set; } = 0.3f;
         /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
-        public int LimitRotations { get; set; } = 28;
+        public int LimitRotations { get; set; } = 32;
         /// <summary>
         /// The amount of rotations before preffering the other direction
         /// </summary>
-        public int BottleneckRotations { get; set; } = 16;
+        public int BottleneckRotations { get; set; } = 24;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -31,15 +31,15 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// The total time 1 spin takes in seconds.
         /// </summary>
-        public float TotalSpinTime { get; set; } = 0.25f;
+        public float TotalSpinTime { get; set; } = 0.3f;
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.065f;
+        public float WallFrontCut { get; set; } = 0.07f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.125f;
+        public float WallBackCut { get; set; } = 0.11f;
 
         public void Generate(IDifficultyBeatmap bm)
         {
@@ -94,7 +94,7 @@ namespace Beat_360fyer_Plugin
                     BeatmapObjectData d = objects[i];
                     if (d is NoteData n)
                     {
-                        if (n.cutDirection != NoteCutDirection.None) // Filter bombs
+                        if (n.cutDirection != NoteCutDirection.None && n.cutDirection != NoteCutDirection.Any) // Filter bombs and any direction notes
                             currentNotes.Add(n);
                     }
                     else if (d is ObstacleData o)
@@ -112,7 +112,6 @@ namespace Beat_360fyer_Plugin
                 // Bottleneck rotation events
                 if ((time - previousRotationTime) * beatDuration < 1f / MaxRotationsPerSecond)
                 {
-                    //Plugin.Log.Info($"{currentNotes.Count} notes bottlenecked at {time} ({time} - {previousRotationTime}) * {beatDuration} = {(time - previousRotationTime) * beatDuration} (< 0.125f)");
                     continue;
                 }
 
@@ -147,19 +146,18 @@ namespace Beat_360fyer_Plugin
                 int divider = (int)(RotationDivider / ((nextObjectTime - time) * beatDuration));
                 if (divider < 1) 
                     divider = 1;
-                int direction = -leftCount + rightCount;
 
                 // Spin effect
-                if (EnableSpin && (nextObjectTime - time) * beatDuration >= TotalSpinTime * 1.2f)
+                if (EnableSpin && count >= 2 && (nextObjectTime - time) * beatDuration > TotalSpinTime)
                 {
                     Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
                     const int SPIN_STEP = 2;
                     float spinStep = TotalSpinTime / (24 / SPIN_STEP) / beatDuration;
 
                     int spinDirection;
-                    if (direction == 0)
+                    if (leftCount == rightCount)
                         spinDirection = previousDirection ? -SPIN_STEP : SPIN_STEP;
-                    else if (direction < 0)
+                    else if (leftCount > rightCount)
                         spinDirection = -SPIN_STEP;
                     else // direction > 0
                         spinDirection = SPIN_STEP;
@@ -168,20 +166,21 @@ namespace Beat_360fyer_Plugin
                     {
                         Rotate(time + spinStep * s, spinDirection);
                     }
+
                     // Do not emit more rotation events after this
                     continue;
                 }
 
                 // Normal rotation event
-                if (direction < 0)
+                if (leftCount > rightCount)
                 {
-                    Rotate(time, direction / divider - 1);
+                    Rotate(time, -(leftCount / divider + 1));
                 }
-                else if (direction > 0)
+                else if (rightCount > leftCount)
                 {
-                    Rotate(time, direction / divider + 1);
+                    Rotate(time, rightCount / divider + 1);
                 }
-                else // dir == 0
+                else if (count >= divider)
                 {
                     int c = count / divider;
                     if (rotation <= -BottleneckRotations)
@@ -198,8 +197,7 @@ namespace Beat_360fyer_Plugin
                     }
                 }
 
-                Plugin.Log.Info($"[{time}] Divider is {divider} (timeTillNextObject={nextObjectTime - time}, count={count}, leftCount={leftCount}, rightCount={rightCount})");
-                //Plugin.Log.Info($"{count} notes (<-{leftCount} {rightCount}->) at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds]");
+                Plugin.Log.Info($"{leftCount} <- {count} -> {rightCount} at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds] (divider={divider}, timeTillNextObject={nextObjectTime - time})");
             }
 
             // Cut walls, walls will be cut when a rotation event is emitted
