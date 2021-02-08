@@ -35,11 +35,11 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.07f;
+        public float WallFrontCut { get; set; } = 0.15f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.11f;
+        public float WallBackCut { get; set; } = 0.3f;
 
         public void Generate(IDifficultyBeatmap bm)
         {
@@ -159,18 +159,17 @@ namespace Beat_360fyer_Plugin
                 if (EnableSpin && count >= 2 && (nextObjectTime - time) * beatDuration > TotalSpinTime)
                 {
                     Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
-                    const int SPIN_STEP = 2;
-                    float spinStep = TotalSpinTime / (24 / SPIN_STEP) / beatDuration;
+                    float spinStep = TotalSpinTime / 24 / beatDuration;
 
                     int spinDirection;
                     if (leftCount == rightCount)
-                        spinDirection = previousDirection ? -SPIN_STEP : SPIN_STEP;
+                        spinDirection = previousDirection ? -1 : 1;
                     else if (leftCount > rightCount)
-                        spinDirection = -SPIN_STEP;
+                        spinDirection = -1;
                     else // direction > 0
-                        spinDirection = SPIN_STEP;
+                        spinDirection = 1;
 
-                    for (int s = 0; s < 24 / SPIN_STEP; s++)
+                    for (int s = 1; s <= 24; s++)
                     {
                         Rotate(time + spinStep * s, spinDirection);
                     }
