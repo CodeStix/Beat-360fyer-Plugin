@@ -11,11 +11,11 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Maximum amount of rotation events per second (not per beat) 
         /// </summary>
-        public int MaxRotationsPerSecond { get; set; } = 4;
+        public int MaxRotationsPerSecond { get; set; } = 8;
         /// <summary>
         /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
         /// </summary>
-        public float RotationDivider { get; set; } = 0.3f;
+        public float RotationDivider { get; set; } = 0.35f;
         /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
@@ -53,6 +53,14 @@ namespace Beat_360fyer_Plugin
             bool previousDirection = false;
             // The time of the previous rotation event that was emitted
             float previousRotationTime = 0f;
+
+            float alignedMinRotationInterval = 60f / bm.level.beatsPerMinute;
+            while (alignedMinRotationInterval > 1f / MaxRotationsPerSecond * 1.25f)
+                alignedMinRotationInterval *= 0.5f;
+            while (alignedMinRotationInterval < 1f / MaxRotationsPerSecond * 0.75f)
+                alignedMinRotationInterval *= 2f;
+
+            Plugin.Log.Info($"Aligned {alignedMinRotationInterval} from {1f / MaxRotationsPerSecond} (bpm={bm.level.beatsPerMinute}, maxRot={MaxRotationsPerSecond})");
 
             // Negative numbers rotate to the left, positive to the right
             void Rotate(float time, int amount)
@@ -110,7 +118,7 @@ namespace Beat_360fyer_Plugin
                 }
 
                 // Bottleneck rotation events
-                if ((time - previousRotationTime) * beatDuration < 1f / MaxRotationsPerSecond)
+                if ((time - previousRotationTime) * beatDuration < alignedMinRotationInterval)
                 {
                     continue;
                 }
@@ -197,7 +205,7 @@ namespace Beat_360fyer_Plugin
                     }
                 }
 
-                Plugin.Log.Info($"{leftCount} <- {count} -> {rightCount} at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds] (divider={divider}, timeTillNextObject={nextObjectTime - time})");
+                //Plugin.Log.Info($"{leftCount} <- {count} -> {rightCount} at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds] (divider={divider}, timeTillNextObject={nextObjectTime - time})");
             }
 
             // Cut walls, walls will be cut when a rotation event is emitted
