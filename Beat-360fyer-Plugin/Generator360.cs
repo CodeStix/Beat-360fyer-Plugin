@@ -11,11 +11,11 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Maximum amount of rotation events per second (not per beat) 
         /// </summary>
-        public int MaxRotationsPerSecond { get; set; } = 8;
+        public int MaxRotationsPerSecond { get; set; } = 4;
         /// <summary>
         /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
         /// </summary>
-        public float RotationDivider { get; set; } = 0.35f;
+        public float RotationDivider { get; set; } = 0.8f;
         /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
@@ -31,15 +31,15 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// The total time 1 spin takes in seconds.
         /// </summary>
-        public float TotalSpinTime { get; set; } = 0.3f;
+        public float TotalSpinTime { get; set; } = 0.8f;
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.15f;
+        public float WallFrontCut { get; set; } = 0.1f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.3f;
+        public float WallBackCut { get; set; } = 0.2f;
 
         public void Generate(IDifficultyBeatmap bm)
         {
@@ -84,9 +84,9 @@ namespace Beat_360fyer_Plugin
             }
 
             // The time of 1 beat in seconds
-            float beatDuration = 60f / bm.level.beatsPerMinute;
+            //float beatDuration = 60f / bm.level.beatsPerMinute;
 
-            Plugin.Log.Info($"[Generator] Start, alignedMinRotationInterval={alignedMinRotationInterval} (~{1f / MaxRotationsPerSecond}) bpm={bm.level.beatsPerMinute} beatDuration={beatDuration}");
+            Plugin.Log.Info($"[Generator] Start, alignedMinRotationInterval={alignedMinRotationInterval} (~{1f / MaxRotationsPerSecond}) bpm={bm.level.beatsPerMinute}");
 
             List<ModNoteData> currentNotes = new List<ModNoteData>();
             for (int i = 0; i < data.objects.Count; i++)
@@ -96,7 +96,7 @@ namespace Beat_360fyer_Plugin
                 // All the currentNotes will have around the same time (negligible, just use the first note's time)
                 float time = data.objects[i].time;
 
-                for (; i < data.objects.Count && (data.objects[i].time - time) * beatDuration <= 0.01f; i++)
+                for (; i < data.objects.Count && data.objects[i].time - time <= 0.01f; i++)
                 {
                     ModObject d = data.objects[i];
                     if (d is ModNoteData n)
@@ -113,7 +113,7 @@ namespace Beat_360fyer_Plugin
                 }
 
                 // Bottleneck rotation events
-                if ((time - previousRotationTime) * beatDuration < alignedMinRotationInterval)
+                if (time - previousRotationTime < alignedMinRotationInterval)
                 {
                     continue;
                 }
@@ -146,15 +146,15 @@ namespace Beat_360fyer_Plugin
                 // 0.25           | 4        | 8
                 // 0.125          | 8        | 16
                 // 0.1            | 16       | 32
-                int divider = (int)(RotationDivider / ((nextObjectTime - time) * beatDuration));
+                int divider = (int)(RotationDivider / (nextObjectTime - time));
                 if (divider < 1) 
                     divider = 1;
 
                 // Spin effect
-                if (EnableSpin && count >= 2 && (nextObjectTime - time) * beatDuration > TotalSpinTime * 1.25f)
+                if (EnableSpin && count >= 2 && nextObjectTime - time > TotalSpinTime * 1.25f)
                 {
-                    Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) * {beatDuration} = {(nextObjectTime - time) * beatDuration}");
-                    float spinStep = TotalSpinTime / 24 / beatDuration;
+                    Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) = {(nextObjectTime - time)}");
+                    float spinStep = TotalSpinTime / 24;
 
                     int spinDirection;
                     if (leftCount == rightCount)
@@ -164,7 +164,7 @@ namespace Beat_360fyer_Plugin
                     else // direction > 0
                         spinDirection = 1;
 
-                    for (int s = 1; s <= 24; s++)
+                    for (int s = 0; s < 24; s++)
                     {
                         Rotate(time + spinStep * s, spinDirection);
                     }
@@ -216,25 +216,25 @@ namespace Beat_360fyer_Plugin
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
-                        float wallStartCutBeats = WallFrontCut / beatDuration;
+                        float wallStartCutBeats = WallFrontCut;
                         if (cutTime >= ob.time - wallStartCutBeats && cutTime < ob.time + ob.duration / 2f)
                         {
                             // Cut front of wall
                             float cut = cutTime - (ob.time - wallStartCutBeats);
 
-                            Plugin.Log.Info($"[Generator] Cut front wall at {ob.time} duration={ob.duration} realTime={ob.time * beatDuration} cut={cut}");
+                            Plugin.Log.Info($"[Generator] Cut front wall at {ob.time} duration={ob.duration} cut={cut}");
 
                             ob.time += cut;
                             ob.duration -= cut;
                         }
 
-                        float wallEndCutBeats = WallBackCut / beatDuration;
+                        float wallEndCutBeats = WallBackCut;
                         if (cutTime >= ob.time + ob.duration / 2 && cutTime < ob.time + ob.duration + wallEndCutBeats)
                         {
                             // Cut back of wall
                             float cut = (ob.time + ob.duration + wallEndCutBeats) - cutTime;
 
-                            Plugin.Log.Info($"[Generator] Cut back wall at {ob.time} duration={ob.duration} realTime={ob.time * beatDuration} cut={cut}");
+                            Plugin.Log.Info($"[Generator] Cut back wall at {ob.time} duration={ob.duration} cut={cut}");
 
                             ob.duration -= cut;
                         }
