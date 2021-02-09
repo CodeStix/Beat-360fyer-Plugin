@@ -10,20 +10,21 @@ namespace Beat_360fyer_Plugin
     {
         /// <summary>
         /// Maximum amount of rotation events per second (not per beat) 
+        /// (this is a float because the rotations will be around this value, depends per song because it gets aligned with each songs bpm)
         /// </summary>
-        public int MaxRotationsPerSecond { get; set; } = 4;
+        public float MaxRotationsPerSecond { get; set; } = 4f;
         /// <summary>
         /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
         /// </summary>
-        public float RotationDivider { get; set; } = 0.8f;
+        public float RotationDivider { get; set; } = 1f;
         /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
-        public int LimitRotations { get; set; } = 32;
+        public int LimitRotations { get; set; } = 320;
         /// <summary>
         /// The amount of rotations before preffering the other direction
         /// </summary>
-        public int BottleneckRotations { get; set; } = 24;
+        public int BottleneckRotations { get; set; } = 240;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -31,15 +32,15 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// The total time 1 spin takes in seconds.
         /// </summary>
-        public float TotalSpinTime { get; set; } = 0.8f;
+        public float TotalSpinTime { get; set; } = 0.6f;
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.1f;
+        public float WallFrontCut { get; set; } = 0.085f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.2f;
+        public float WallBackCut { get; set; } = 0.15f;
 
         public void Generate(IDifficultyBeatmap bm)
         {
@@ -89,7 +90,7 @@ namespace Beat_360fyer_Plugin
             Plugin.Log.Info($"[Generator] Start, alignedMinRotationInterval={alignedMinRotationInterval} (~{1f / MaxRotationsPerSecond}) bpm={bm.level.beatsPerMinute}");
 
             List<ModNoteData> currentNotes = new List<ModNoteData>();
-            for (int i = 0; i < data.objects.Count; i++)
+            for (int i = 0; i < data.objects.Count; )
             {
                 currentNotes.Clear();
 
@@ -112,16 +113,13 @@ namespace Beat_360fyer_Plugin
                     continue;
                 }
 
-                // Bottleneck rotation events
-                if (time - previousRotationTime < alignedMinRotationInterval)
-                {
-                    continue;
-                }
-
                 // Get next object's time, nextNoteTime cannot be zero
                 float nextObjectTime = i >= data.objects.Count ? float.MaxValue : data.objects[i].time;
 
 #if DEBUG
+                if (i < data.objects.Count && !(data.objects[i] is ModNoteData))
+                    Plugin.Log.Warn("Next object type is not note: " + data.objects[i].GetType().FullName);
+
                 if (!(time < nextObjectTime) || ((nextObjectTime - time) < 0.001f))
                     Plugin.Log.Warn($"Assert failed: time < nextObjectTime, time={time}, nextObjectTime={nextObjectTime}, nextObjectTime - time = {nextObjectTime - time}");
 #endif
@@ -138,20 +136,8 @@ namespace Beat_360fyer_Plugin
                     || e.cutDirection == NoteCutDirection.UpRight
                     || ((e.lineIndex == 2 || e.lineIndex == 3) && (e.cutDirection != NoteCutDirection.Left && e.cutDirection != NoteCutDirection.DownLeft && e.cutDirection != NoteCutDirection.UpLeft) && e.noteLineLayer == NoteLineLayer.Base));
 
-                // RotationDivider: 1f       | 2f
-                // timeDiffInSec  | divider  | divider
-                // 2              | 0.5      | 1
-                // 1              | 1        | 2
-                // 0.5            | 2        | 4
-                // 0.25           | 4        | 8
-                // 0.125          | 8        | 16
-                // 0.1            | 16       | 32
-                int divider = (int)(RotationDivider / (nextObjectTime - time));
-                if (divider < 1) 
-                    divider = 1;
-
                 // Spin effect
-                if (EnableSpin && count >= 2 && nextObjectTime - time > TotalSpinTime * 1.25f)
+                if (EnableSpin && count >= 2 && nextObjectTime - time > TotalSpinTime + 0.8f)
                 {
                     Plugin.Log.Info($"[Generator] Spin effect at {time}: ({nextObjectTime} - {time}) = {(nextObjectTime - time)}");
                     float spinStep = TotalSpinTime / 24;
@@ -172,6 +158,25 @@ namespace Beat_360fyer_Plugin
                     // Do not emit more rotation events after this
                     continue;
                 }
+
+                // Bottleneck rotation events
+                if (time - previousRotationTime < alignedMinRotationInterval)
+                {
+                    continue;
+                }
+
+                // Determine the amount we will spin at once (1, 2, 3 or 4 times)
+                // RotationDivider: 1f       | 2f
+                // timeDiffInSec  | divider  | divider
+                // 2              | 0.5      | 1
+                // 1              | 1        | 2
+                // 0.5            | 2        | 4
+                // 0.25           | 4        | 8
+                // 0.125          | 8        | 16
+                // 0.1            | 16       | 32
+                int divider = (int)(RotationDivider / (nextObjectTime - time));
+                if (divider < 1)
+                    divider = 1;
 
                 // Normal rotation event
                 if (leftCount > rightCount)
@@ -199,7 +204,7 @@ namespace Beat_360fyer_Plugin
                     }
                 }
 
-                //Plugin.Log.Info($"{leftCount} <- {count} -> {rightCount} at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime) * beatDuration} seconds] (divider={divider}, timeTillNextObject={nextObjectTime - time})");
+               // Plugin.Log.Info($"{leftCount} <- {count} -> {rightCount} at {time} [+{time - previousRotationTime} beats / +{(time - previousRotationTime)} seconds] (divider={divider}, timeTillNextObject={nextObjectTime - time})");
             }
 
             // Cut walls, walls will be cut when a rotation event is emitted
