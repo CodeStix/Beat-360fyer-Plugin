@@ -71,7 +71,7 @@ namespace Beat_360fyer_Plugin
             bool previousDirection = true;
 
             // Negative numbers rotate to the left, positive to the right
-            void Rotate(float time, int amount)
+            void Rotate(float time, int amount, bool enableLimit = true)
             {
                 if (amount == 0)
                     return;
@@ -79,10 +79,15 @@ namespace Beat_360fyer_Plugin
                     amount = -4;
                 if (amount > 4)
                     amount = 4;
-                if (rotation + amount > LimitRotations || rotation + amount < -LimitRotations)
-                    return;
+
+                if (enableLimit)
+                {
+                    if (rotation + amount > LimitRotations || rotation + amount < -LimitRotations)
+                        return;
+                    rotation += amount;
+                }
+
                 previousDirection = amount > 0;
-                rotation += amount;
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
@@ -121,7 +126,31 @@ namespace Beat_360fyer_Plugin
                 for (; i < notes.Count && notes[i].time - firstNoteTime < currentBarEnd; i++)
                 {
                     notesInBar.Add(notes[i]);
-                } 
+                }
+
+                if (notesInBar.Count >= 2 && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
+                {
+                    Plugin.Log.Info($"[Generator] Spin effect at {firstNoteTime + currentBarStart}");
+                   
+                    int leftCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
+                    int rightCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+                    int spinDirection;
+                    if (leftCount == rightCount)
+                        spinDirection = previousDirection ? -1 : 1;
+                    else if (leftCount > rightCount)
+                        spinDirection = -1;
+                    else // direction > 0
+                        spinDirection = 1;
+
+                    float spinStep = TotalSpinTime / 24;
+                    for (int s = 0; s < 24; s++)
+                    {
+                        Rotate(firstNoteTime + currentBarStart + spinStep * s, spinDirection, false);
+                    }
+
+                    // Do not emit more rotation events after this
+                    continue;
+                }
 
                 // Divide the current bar in x, for each piece, a rotation event CAN be emitted
                 // Is calculated from the amount of notes in the current bar
@@ -172,7 +201,7 @@ namespace Beat_360fyer_Plugin
 
                     // Place the rotation event after all the beat segment notes if they are all at the same time, otherwise, place the event before the notes.
                     float time = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
-                    float rotationTime = notesInBarBeat.All((e) => Math.Abs(e.time - notesInBarBeat[0].time) < 0.01f) ? time + 0.01f : time - 0.01f;
+                    float rotationTime = notesInBarBeat.All((e) => Math.Abs(e.time - notesInBarBeat[0].time) < 0.001f) ? time + 0.01f : time - 0.01f;
                     int dir = -leftCount + rightCount;
                     if (dir < 0)
                     {
