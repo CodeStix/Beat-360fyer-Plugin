@@ -36,7 +36,7 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.085f;
+        public float WallFrontCut { get; set; } = 0.12f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
@@ -228,40 +228,33 @@ namespace Beat_360fyer_Plugin
 
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            foreach (ModObstacleData ob in data.objects.OfType<ModObstacleData>())
+            Queue<ModObstacleData> obstacles = new Queue<ModObstacleData>(data.objects.OfType<ModObstacleData>());
+            while (obstacles.Count > 0)
             {
+                ModObstacleData ob = obstacles.Dequeue();
+                if (ob.duration <= 0f)
+                    continue;
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
                     // If wall is uncomfortable for 360Degree mode, remove it
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.obstacleType == ObstacleType.FullHeight && ob.lineIndex == 0 && ob.width > 1))
                     {
-                        // Wall is not fun in 360, remove it, walls with negative duration will filtered out later
+                        // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
                         ob.duration = 0;
                     }
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
-                        float wallStartCutBeats = WallFrontCut;
-                        if (cutTime >= ob.time - wallStartCutBeats && cutTime < ob.time + ob.duration / 2f)
+                        if (cutTime >= ob.time - WallFrontCut && cutTime < ob.time + ob.duration + WallBackCut)
                         {
-                            // Cut front of wall
-                            float cut = cutTime - (ob.time - wallStartCutBeats);
+                            // Split the wall in half by creating a second wall
+                            float secondPartDuration = ob.duration - (cutTime - ob.time) - WallBackCut;
+                            ModObstacleData secondPart = new ModObstacleData(cutTime + WallBackCut, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
 
-                            Plugin.Log.Info($"[Generator] Cut front wall at {ob.time} duration={ob.duration} cut={cut}");
-
-                            ob.time += cut;
-                            ob.duration -= cut;
-                        }
-
-                        float wallEndCutBeats = WallBackCut;
-                        if (cutTime >= ob.time + ob.duration / 2 && cutTime < ob.time + ob.duration + wallEndCutBeats)
-                        {
-                            // Cut back of wall
-                            float cut = (ob.time + ob.duration + wallEndCutBeats) - cutTime;
-
-                            Plugin.Log.Info($"[Generator] Cut back wall at {ob.time} duration={ob.duration} cut={cut}");
-
-                            ob.duration -= cut;
+                            // Modify first half of wall
+                            float firstPartDuration = (cutTime - ob.time) - WallFrontCut;
+                            Plugin.Log.Info($"[Generator] Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+                            ob.duration = firstPartDuration;
                         }
                     }
                 }
