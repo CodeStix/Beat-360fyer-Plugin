@@ -14,17 +14,13 @@ namespace Beat_360fyer_Plugin
         /// </summary>
         public float PreferredBarDuration { get; set; } = 1.84f;  // Calculated from 130 bpm, which is a pretty standard bpm (60 / 130 bpm * 4 whole notes per bar ~= 1.84)
         /// <summary>
-        /// When lower, less notes are required to create larger rotations (more degree turns at once, can get disorienting)
-        /// </summary>
-        public int RotationDivider { get; set; } = 4;
-        /// <summary>
         /// The amount of rotations before stopping rotation events (rip cable otherwise) 
         /// </summary>
-        public int LimitRotations { get; set; } = 320;
+        public int LimitRotations { get; set; } = 36;
         /// <summary>
         /// The amount of rotations before preferring the other direction
         /// </summary>
-        public int BottleneckRotations { get; set; } = 240;
+        public int BottleneckRotations { get; set; } = 24;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -40,11 +36,11 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.12f;
+        public float WallFrontCut { get; set; } = 0.10f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.15f;
+        public float WallBackCut { get; set; } = 0.12f;
 
         private static int Pow(int b, int exp)
         {
@@ -96,12 +92,12 @@ namespace Beat_360fyer_Plugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                // Place before note (- 0.005f)
                 data.events.Add(new ModEvent(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
 
             float beatDuration = 60f / bm.level.beatsPerMinute;
 
+            // Align PreferredBarDuration to beatDuration
             float barLength = beatDuration; 
             while (barLength >= PreferredBarDuration * 1.25f)
                 barLength /= 2f;
@@ -139,7 +135,6 @@ namespace Beat_360fyer_Plugin
 #if DEBUG
                     Plugin.Log.Info($"[Generator] Spin effect at {firstBeatmapNoteTime + currentBarStart}");
 #endif
-
                     int leftCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
                     int spinDirection;
@@ -168,14 +163,15 @@ namespace Beat_360fyer_Plugin
                 // 1          | r . . . (only on first beat)
                 // 2          | r . r . (on first and third beat)
                 // 4          | r r r r 
-                // 8          | rrrrrrrr
-                // ...
+                // 8          |brrrrrrrr
+                // ...        | ...
+                // TODO: Create formula out of these if statements
                 int barDivider;
-                if (notesInBar.Count >= 48)
+                if (notesInBar.Count >= 52)
                     barDivider = 0; // Too mush notes, do not rotate
-                else if (notesInBar.Count >= 28)
+                else if (notesInBar.Count >= 32)
                     barDivider = 1;
-                else if (notesInBar.Count >= 18)
+                else if (notesInBar.Count >= 20)
                     barDivider = 2;
                 else if (notesInBar.Count >= 8)
                     barDivider = 4;
@@ -184,11 +180,9 @@ namespace Beat_360fyer_Plugin
 
                 if (barDivider <= 0)
                     continue;
-
 #if DEBUG
                 StringBuilder builder = new StringBuilder();
 #endif
-
                 // Iterate all the notes in the current bar in barDiviver pieces (bar is split in barDiviver pieces)
                 float dividedBarLength = barLength / barDivider;
                 for (int j = 0, k = 0; j < barDivider && k < notesInBar.Count; j++)
@@ -216,11 +210,15 @@ namespace Beat_360fyer_Plugin
                     int leftCount = notesInBarBeat.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = notesInBarBeat.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
 
-                    // Rotate more at once if less notes are coming, rotate less at once if notes are coming fast
-                    int rotationDivider = (int)(RotationDivider / (nextNoteTime - firstNoteTime));
-                    if (rotationDivider < 2)
-                        rotationDivider = 2;
+                    // Determine amount to rotate at once
+                    // TODO: Create formula out of these if statements
+                    int rotationCount = 1;
+                    if (notesInBar.Count <= 2 && notesInBarBeat.Count >= 2)
+                        rotationCount = 3;
+                    else if (notesInBar.Count <= 4 && notesInBarBeat.Count >= 2)
+                        rotationCount = 2;
 
+                    // Place the rotation event after or before the note?
                     bool placeAfter = true; // notesInBarBeat.All((e) => Math.Abs(e.time - firstTime) < 0.001f);
                     float rotationTime;
                     if (placeAfter)
@@ -234,44 +232,42 @@ namespace Beat_360fyer_Plugin
                         rotationTime = firstNoteTime - 0.01f;
                     }
 
-                    // Mean direction which all the notes are pointing to
-                    int dir = -leftCount + rightCount;
                     int rotation = 0;
-                    if (dir < 0)
+                    if (leftCount > rightCount)
                     {
                         // Most of the notes are pointing to the left, rotate to the left
-                        rotation = dir / rotationDivider - 1;
+                        rotation = -rotationCount;
                     }
-                    else if (dir > 0)
+                    else if (rightCount > leftCount)
                     {
                         // Most of the notes are pointing to the right, rotate to the right
-                        rotation = dir / rotationDivider + 1;
+                        rotation = rotationCount;
                     }
                     else
                     {
                         // Rotate to left or right
-                        int r = notesInBarBeat.Count / 2 / rotationDivider + 1;
                         if (totalRotation >= BottleneckRotations)
                         {
                             // Prefer rotating to the left if moved a lot to the right
-                            rotation = -r;
+                            rotation = -rotationCount;
                         }
                         else if (totalRotation <= -BottleneckRotations)
                         {
                             // Prefer rotating to the right if moved a lot to the left
-                            rotation = r;
+                            rotation = rotationCount;
                         }
                         else
                         {
                             // Rotate based on previous direction
-                            rotation = previousDirection ? r : -r;
+                            rotation = previousDirection ? rotationCount : -rotationCount;
                         }
                     }
 
+                    // Finally rotate
                     Rotate(rotationTime, rotation);
 
 #if DEBUG
-                    Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationDivider={rotationDivider})");
+                    Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");
 #endif
                 }
 
