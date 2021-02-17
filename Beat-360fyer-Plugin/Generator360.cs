@@ -9,7 +9,7 @@ namespace Beat_360fyer_Plugin
     public class Generator360
     {
         /// <summary>
-        /// The preferred bar size in seconds. The generator will loop the song in bars. 
+        /// The preferred bar duration in seconds. The generator will loop the song in bars. 
         /// This is called 'preferred' because this value will change depending on a song's bpm (will be aligned around this value).
         /// </summary>
         public float PreferredBarDuration { get; set; } = 1.84f;  // Calculated from 130 bpm, which is a pretty standard bpm (60 / 130 bpm * 4 whole notes per bar ~= 1.84)
@@ -33,6 +33,10 @@ namespace Beat_360fyer_Plugin
         /// The total time 1 spin takes in seconds.
         /// </summary>
         public float TotalSpinTime { get; set; } = 0.6f;
+        /// <summary>
+        /// Minimum amount of seconds between each spin effect.
+        /// </summary>
+        public float SpinCooldown { get; set; } = 10f;
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
@@ -69,6 +73,7 @@ namespace Beat_360fyer_Plugin
             List<(float, int)> wallCutMoments = new List<(float, int)>();
             // Previous spin direction, false is left, true is right
             bool previousDirection = true;
+            float previousSpinTime = float.MinValue;
 
             // Negative numbers rotate to the left, positive to the right
             void Rotate(float time, int amount, bool enableLimit = true)
@@ -128,7 +133,7 @@ namespace Beat_360fyer_Plugin
                 if (notesInBar.Count == 0) // If only bombs
                     continue;
 
-                if (notesInBar.Count >= 2 && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
+                if (notesInBar.Count >= 2 && currentBarStart - previousSpinTime > SpinCooldown && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
                 {
                     Plugin.Log.Info($"[Generator] Spin effect at {firstBeatmapNoteTime + currentBarStart}");
                    
@@ -149,10 +154,11 @@ namespace Beat_360fyer_Plugin
                     }
 
                     // Do not emit more rotation events after this
-                    //continue;
+                    previousSpinTime = currentBarStart;
+                    continue;
                 }
 
-                // Divide the current bar in x, for each piece, a rotation event CAN be emitted
+                // Divide the current bar in x pieces (or notes), for each piece, a rotation event CAN be emitted
                 // Is calculated from the amount of notes in the current bar
                 // barDivider | rotations
                 // 0          | . . . . (no rotations)
