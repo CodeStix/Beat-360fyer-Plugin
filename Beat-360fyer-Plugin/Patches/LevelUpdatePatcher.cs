@@ -14,17 +14,26 @@ namespace Beat_360fyer_Plugin.Patches
     [HarmonyPatch("StartStandardLevel", new[] { typeof(string), typeof(IDifficultyBeatmap), typeof(OverrideEnvironmentSettings), typeof(ColorScheme), typeof(GameplayModifiers), typeof(PlayerSpecificSettings), typeof(PracticeSettings), typeof(string), typeof(bool), typeof(Action), typeof(Action<DiContainer>), typeof(Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults>) })]
     public class TransitionPatcher
     {
+        private static HashSet<IDifficultyBeatmap> generated = new HashSet<IDifficultyBeatmap>();
+
         static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
-            // CustomDifficultyBeatmap
-            Plugin.Log.Info($"[StartStandardLevel] Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
+            Plugin.Log.Info($"Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
 
             if (difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
             {
-                Plugin.Log.Info("[StartStandardLevel] Generating rotation events...");
+                Plugin.Log.Info("Generating rotation events...");
 
-                Generator360 gen = new Generator360();
-                gen.Generate(difficultyBeatmap);
+                if (!generated.Contains(difficultyBeatmap))
+                {
+                    generated.Add(difficultyBeatmap);
+                    Generator360 gen = new Generator360();
+                    gen.Generate(difficultyBeatmap);
+                }
+                else
+                {
+                    Plugin.Log.Info("Already generated rotation events");
+                }
             }
         }
     }
@@ -59,13 +68,13 @@ namespace Beat_360fyer_Plugin.Patches
             {
                 if (!FieldHelper.Set(data, "_difficultyBeatmapSets", newSets))
                 {
-                    Plugin.Log.Warn("[SetContent] Could not set new difficulty sets");
+                    Plugin.Log.Warn("Could not set new difficulty sets");
                     return;
                 }
             }
             else
             {
-                Plugin.Log.Info("[SetContent] Unsupported data: " + (level.beatmapLevelData?.GetType().FullName ?? "null"));
+                Plugin.Log.Info("Unsupported beatmapLevelData: " + (level.beatmapLevelData?.GetType().FullName ?? "null"));
             }
         }
     }
