@@ -115,8 +115,9 @@ namespace Beat_360fyer_Plugin
             // Align bars to first note, the first note (almost always) identifies the start of the first bar
             float firstBeatmapNoteTime = notes[0].time;
 
+#if DEBUG
             Plugin.Log.Info($"Setup bpm={bm.level.beatsPerMinute} beatDuration={beatDuration} barLength={barLength} firstNoteTime={firstBeatmapNoteTime}");
-
+#endif
 
             for (int i = 0; i < notes.Count; )
             {
@@ -135,8 +136,10 @@ namespace Beat_360fyer_Plugin
 
                 if (notesInBar.Count >= 2 && currentBarStart - previousSpinTime > SpinCooldown && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
                 {
+#if DEBUG
                     Plugin.Log.Info($"[Generator] Spin effect at {firstBeatmapNoteTime + currentBarStart}");
-                   
+#endif
+
                     int leftCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
                     int spinDirection;
@@ -182,8 +185,9 @@ namespace Beat_360fyer_Plugin
                 if (barDivider <= 0)
                     continue;
 
-                // Debug purpose
+#if DEBUG
                 StringBuilder builder = new StringBuilder();
+#endif
 
                 // Iterate all the notes in the current bar in barDiviver pieces (bar is split in barDiviver pieces)
                 float dividedBarLength = barLength / barDivider;
@@ -195,10 +199,12 @@ namespace Beat_360fyer_Plugin
                         notesInBarBeat.Add(notesInBar[k]);
                     }
 
+#if DEBUG
                     // Debug purpose
                     if (j != 0)
                         builder.Append(',');
                     builder.Append(notesInBarBeat.Count);
+#endif
 
                     if (notesInBarBeat.Count == 0) 
                         continue;
@@ -263,11 +269,16 @@ namespace Beat_360fyer_Plugin
                     }
 
                     Rotate(rotationTime, rotation);
+
+#if DEBUG
                     Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationDivider={rotationDivider})");
+#endif
                 }
 
 
+#if DEBUG
                 Plugin.Log.Info($"[{currentBarStart + firstBeatmapNoteTime}({(currentBarStart + firstBeatmapNoteTime) / beatDuration}) -> {currentBarEnd + firstBeatmapNoteTime}({(currentBarEnd + firstBeatmapNoteTime) / beatDuration})] count={notesInBar.Count} segments={builder} barDiviver={barDivider}");
+#endif
             }
 
 
@@ -297,14 +308,16 @@ namespace Beat_360fyer_Plugin
 
                             // Modify first half of wall
                             float firstPartDuration = (cutTime - ob.time) - WallFrontCut;
-                            Plugin.Log.Info($"[Generator] Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+#if DEBUG
+                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+#endif
                             ob.duration = firstPartDuration;
                         }
                     }
                 }
             }
 
-            Plugin.Log.Info($"[Generator] Emitted {eventCount} rotation events");
+            Plugin.Log.Info($"Emitted {eventCount} rotation events");
 
             if (!FieldHelper.Set(bm, "_beatmapData", data.ToBeatmap()))
             {
