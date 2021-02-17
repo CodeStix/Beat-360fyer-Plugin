@@ -15,7 +15,7 @@ namespace Beat_360fyer_Plugin
 
         public static BeatmapCharacteristicSO GetGenerated360GameMode()
         {
-            return GetCustomGameMode(GENERATED_360DEGREE_MODE, null, "GEN360", "Generated 360 mode");
+            return GetCustomGameMode(GENERATED_360DEGREE_MODE, GetDefault360Mode().icon, "GEN360", "Generated 360 mode");
         }
 
         public static BeatmapCharacteristicSO GetCustomGameMode(string serializedName, Sprite icon, string name, string description, bool requires360Movement = true, bool containsRotationEvents = true, int numberOfColors = 2)
@@ -26,7 +26,6 @@ namespace Beat_360fyer_Plugin
             if (icon == null)
             {
                 Texture2D tex = new Texture2D(50, 50);
-                tex.SetPixel(0, 0, Color.red);
                 icon = Sprite.Create(tex, new Rect(0f, 0f, tex.width, tex.height), new Vector2(0.5f, 0.5f));
             }
 
@@ -43,26 +42,28 @@ namespace Beat_360fyer_Plugin
             return customGameMode;
         }
 
-        // Way to get built in game modes
-
-        //CustomLevelLoader customLevelLoader = UnityEngine.Object.FindObjectOfType<CustomLevelLoader>();
-        //if (customLevelLoader == null)
-        //{
-        //    Plugin.Log.Info("customLevelLoader is null");
-        //    return;
-        //}
-        //BeatmapCharacteristicCollectionSO defaultGameModes = FieldHelper.Get<BeatmapCharacteristicCollectionSO>(customLevelLoader, "_beatmapCharacteristicCollection");
-        //if (defaultGameModes == null)
-        //{
-        //    Plugin.Log.Info("beatmapCharacteristicCollection is null");
-        //    return;
-        //}
-        //Plugin.Log.Info("characteristics: " + string.Join(", ", defaultGameModes.beatmapCharacteristics.Select((e) => e.serializedName)));
-        //BeatmapCharacteristicSO default360GameMode = defaultGameModes.GetBeatmapCharacteristicBySerializedName("360Degree");
-        //if(default360GameMode == null)
-        //{
-        //    Plugin.Log.Info("default360GameMode is null");
-        //    return;
-        //}
+        private static BeatmapCharacteristicSO GetDefault360Mode()
+        {
+            CustomLevelLoader customLevelLoader = UnityEngine.Object.FindObjectOfType<CustomLevelLoader>();
+            if (customLevelLoader == null)
+            {
+                Plugin.Log.Info("customLevelLoader is null");
+                return null;
+            }
+            BeatmapCharacteristicCollectionSO defaultGameModes = FieldHelper.Get<BeatmapCharacteristicCollectionSO>(customLevelLoader, "_beatmapCharacteristicCollection");
+            if (defaultGameModes == null)
+            {
+                Plugin.Log.Info("beatmapCharacteristicCollection is null");
+                return null;
+            }
+            Plugin.Log.Info("characteristics: " + string.Join(", ", defaultGameModes.beatmapCharacteristics.Select((e) => e.serializedName)));
+            BeatmapCharacteristicSO default360GameMode = defaultGameModes.GetBeatmapCharacteristicBySerializedName("360Degree");
+            if (default360GameMode == null)
+            {
+                Plugin.Log.Info("default360GameMode is null");
+                return null;
+            }
+            return default360GameMode;
+        }
     }
 }
