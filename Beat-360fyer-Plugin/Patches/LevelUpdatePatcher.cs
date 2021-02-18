@@ -29,6 +29,13 @@ namespace Beat360fyerPlugin.Patches
                 {
                     generated.Add(difficultyBeatmap);
                     Generator360 gen = new Generator360();
+
+                    if (startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
+                    {
+                        gen.BottleneckRotations = 2;
+                        gen.LimitRotations = 3;
+                    }
+
                     gen.Generate(difficultyBeatmap);
                 }
                 else
