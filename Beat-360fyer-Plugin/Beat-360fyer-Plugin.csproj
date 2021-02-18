@@ -8,7 +8,7 @@
     <ProjectGuid>{6A770C7D-8282-4DD8-BC74-DD0F69C69B39}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Beat_360fyer_Plugin</RootNamespace>
+    <RootNamespace>Beat360fyerPlugin</RootNamespace>
     <AssemblyName>Beat-360fyer-Plugin</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -110,7 +110,7 @@
     <Compile Include="ModBeatmapData.cs" />
     <Compile Include="Patches\LevelUpdatePatcher.cs" />
     <Compile Include="Plugin.cs" />
-    <Compile Include="Configuration\PluginConfig.cs" />
+    <Compile Include="Config.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

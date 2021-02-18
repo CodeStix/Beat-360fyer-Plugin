@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Beat_360fyer_Plugin
+namespace Beat360fyerPlugin
 {
     public class ModBeatmapData
     {

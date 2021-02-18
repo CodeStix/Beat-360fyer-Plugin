@@ -5,17 +5,23 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace Beat_360fyer_Plugin
+namespace Beat360fyerPlugin
 {
     public static class GameModeHelper
     {
         private static Dictionary<string, BeatmapCharacteristicSO> customGamesModes = new Dictionary<string, BeatmapCharacteristicSO>();
 
         public const string GENERATED_360DEGREE_MODE = "Generated360Degree";
+        public const string GENERATED_90DEGREE_MODE = "Generated360Degree";
 
         public static BeatmapCharacteristicSO GetGenerated360GameMode()
         {
             return GetCustomGameMode(GENERATED_360DEGREE_MODE, GetDefault360Mode().icon, "GEN360", "Generated 360 mode");
+        }
+
+        public static BeatmapCharacteristicSO GetGenerated90GameMode()
+        {
+            return GetCustomGameMode(GENERATED_90DEGREE_MODE, GetDefault90Mode().icon, "GEN90", "Generated 90 mode");
         }
 
         public static BeatmapCharacteristicSO GetCustomGameMode(string serializedName, Sprite icon, string name, string description, bool requires360Movement = true, bool containsRotationEvents = true, int numberOfColors = 2)
@@ -42,7 +48,7 @@ namespace Beat_360fyer_Plugin
             return customGameMode;
         }
 
-        private static BeatmapCharacteristicSO GetDefault360Mode()
+        private static BeatmapCharacteristicCollectionSO GetDefaultGameModes()
         {
             CustomLevelLoader customLevelLoader = UnityEngine.Object.FindObjectOfType<CustomLevelLoader>();
             if (customLevelLoader == null)
@@ -53,17 +59,19 @@ namespace Beat_360fyer_Plugin
             BeatmapCharacteristicCollectionSO defaultGameModes = FieldHelper.Get<BeatmapCharacteristicCollectionSO>(customLevelLoader, "_beatmapCharacteristicCollection");
             if (defaultGameModes == null)
             {
-                Plugin.Log.Info("beatmapCharacteristicCollection is null");
-                return null;
+                Plugin.Log.Warn("defaultGameModes is null");
             }
-            Plugin.Log.Info("characteristics: " + string.Join(", ", defaultGameModes.beatmapCharacteristics.Select((e) => e.serializedName)));
-            BeatmapCharacteristicSO default360GameMode = defaultGameModes.GetBeatmapCharacteristicBySerializedName("360Degree");
-            if (default360GameMode == null)
-            {
-                Plugin.Log.Info("default360GameMode is null");
-                return null;
-            }
-            return default360GameMode;
+            return defaultGameModes;
+        }
+
+        private static BeatmapCharacteristicSO GetDefault360Mode()
+        {
+            return GetDefaultGameModes().GetBeatmapCharacteristicBySerializedName("360Degree");
+        }
+
+        private static BeatmapCharacteristicSO GetDefault90Mode()
+        {
+            return GetDefaultGameModes().GetBeatmapCharacteristicBySerializedName("90Degree");
         }
     }
 }

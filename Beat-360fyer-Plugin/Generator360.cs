@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Beat_360fyer_Plugin
+namespace Beat360fyerPlugin
 {
     public class Generator360
     {
@@ -36,20 +36,11 @@ namespace Beat_360fyer_Plugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.10f;
+        public float WallFrontCut { get; set; } = 0.12f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.12f;
-
-        private static int Pow(int b, int exp)
-        {
-            if (exp == 0)
-                return 1;
-            for (int i = 1; i < exp; i++)
-                b *= b;
-            return b;
-        }
+        public float WallBackCut { get; set; } = 0.2f;
 
         private static int Floor(float f)
         {

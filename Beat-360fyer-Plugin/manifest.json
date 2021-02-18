@@ -1,6 +1,6 @@
 ﻿{
   "$schema": "https://raw.githubusercontent.com/bsmg/BSIPA-MetadataFileSchema/master/Schema.json",
-  "id": "Beat_360fyer_Plugin",
+  "id": "Beat360fyerPlugin",
   "name": "Beat-360fyer-Plugin",
   "author": "codestix",
   "version": "0.0.1",
@@ -8,7 +8,7 @@
   "gameVersion": "1.11.1",
   "dependsOn": {
     "BSIPA": "^4.0.5",
-    "SongCore":  "^3.0.3"
+    "SongCore": "^3.0.3"
   },
   "features": []
 }

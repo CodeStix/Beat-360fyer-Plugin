@@ -9,8 +9,9 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using IPALogger = IPA.Logging.Logger;
+using IPAConfig = IPA.Config.Config;
 
-namespace Beat_360fyer_Plugin
+namespace Beat360fyerPlugin
 {
     [Plugin(RuntimeOptions.SingleStartInit)]
     public class Plugin
@@ -19,29 +20,13 @@ namespace Beat_360fyer_Plugin
         internal static IPALogger Log { get; private set; }
 
         [Init]
-        /// <summary>
-        /// Called when the plugin is first loaded by IPA (either when the game starts or when the plugin is enabled if it starts disabled).
-        /// [Init] methods that use a Constructor or called before regular methods like InitWithConfig.
-        /// Only use [Init] with one Constructor.
-        /// </summary>
-        public void Init(IPALogger logger)
+        public void Init(IPALogger logger, IPAConfig conf)
         {
             Instance = this;
             Log = logger;
-            Log.Info("Beat-360fyer-Plugin initialized.");
+            Config.Instance = conf.Generated<Config>();
+            Log.Info($"Beat-360fyer-Plugin initialized. {Config.Instance.ShowGenerated90} {Config.Instance.ShowGenerated360}");
         }
-
-        #region BSIPA Config
-        //Uncomment to use BSIPA's config
-        /*
-        [Init]
-        public void InitWithConfig(Config conf)
-        {
-            Configuration.PluginConfig.Instance = conf.Generated<Configuration.PluginConfig>();
-            Log.Debug("Config loaded");
-        }
-        */
-        #endregion
 
         [OnStart]
         public void OnApplicationStart()

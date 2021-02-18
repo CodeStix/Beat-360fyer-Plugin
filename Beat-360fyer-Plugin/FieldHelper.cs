@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Beat_360fyer_Plugin
+namespace Beat360fyerPlugin
 {
     public static class FieldHelper
     {
