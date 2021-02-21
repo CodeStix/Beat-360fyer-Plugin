@@ -23,7 +23,7 @@ namespace Beat360fyerPlugin.Patches
             string startingGameModeName = difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             if (startingGameModeName == GameModeHelper.GENERATED_360DEGREE_MODE || startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
             {
-                Plugin.Log.Info("Generating rotation events...");
+                Plugin.Log.Info($"Generating rotation events for {startingGameModeName}...");
 
                 if (!generated.Contains(difficultyBeatmap))
                 {
@@ -34,6 +34,11 @@ namespace Beat360fyerPlugin.Patches
                     {
                         gen.BottleneckRotations = 2;
                         gen.LimitRotations = 3;
+                    }
+                    else
+                    {
+                        gen.BottleneckRotations = 26;
+                        gen.LimitRotations = 36;
                     }
 
                     gen.Generate(difficultyBeatmap);

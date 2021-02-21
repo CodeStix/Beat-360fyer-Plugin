@@ -12,7 +12,7 @@ namespace Beat360fyerPlugin
         private static Dictionary<string, BeatmapCharacteristicSO> customGamesModes = new Dictionary<string, BeatmapCharacteristicSO>();
 
         public const string GENERATED_360DEGREE_MODE = "Generated360Degree";
-        public const string GENERATED_90DEGREE_MODE = "Generated360Degree";
+        public const string GENERATED_90DEGREE_MODE = "Generated90Degree";
 
         public static BeatmapCharacteristicSO GetGenerated360GameMode()
         {

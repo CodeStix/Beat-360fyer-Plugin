@@ -74,8 +74,13 @@ namespace Beat360fyerPlugin
 
                 if (enableLimit)
                 {
-                    if (totalRotation + amount > LimitRotations || totalRotation + amount < -LimitRotations)
+                    if (totalRotation > 0 && totalRotation + amount > LimitRotations)
+                        amount = Math.Min(amount, Math.Max(0, LimitRotations - totalRotation));
+                    else if (totalRotation < 0 && totalRotation - amount < -LimitRotations)
+                        amount = Math.Max(amount, Math.Min(0, -(LimitRotations + totalRotation)));
+                    if (amount == 0)
                         return;
+
                     totalRotation += amount;
                 }
 
@@ -206,7 +211,7 @@ namespace Beat360fyerPlugin
                     int rotationCount = 1;
                     if (notesInBar.Count <= 2 && notesInBarBeat.Count >= 2)
                         rotationCount = 3;
-                    else if (notesInBar.Count <= 4 && notesInBarBeat.Count >= 2)
+                    else if (notesInBar.Count <= 8 && notesInBarBeat.Count >= 2)
                         rotationCount = 2;
 
                     // Place the rotation event after or before the note?
