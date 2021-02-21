@@ -35,11 +35,6 @@ namespace Beat360fyerPlugin.Patches
                         gen.BottleneckRotations = 2;
                         gen.LimitRotations = 3;
                     }
-                    else
-                    {
-                        gen.BottleneckRotations = 26;
-                        gen.LimitRotations = 36;
-                    }
 
                     gen.Generate(difficultyBeatmap);
                 }

@@ -20,7 +20,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// The amount of rotations before preferring the other direction
         /// </summary>
-        public int BottleneckRotations { get; set; } = 24;
+        public int BottleneckRotations { get; set; } = 18;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -36,11 +36,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.12f;
+        public float WallFrontCut { get; set; } = 0.13f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.2f;
+        public float WallBackCut { get; set; } = 0.3f;
 
         private static int Floor(float f)
         {
@@ -169,7 +169,7 @@ namespace Beat360fyerPlugin
                     barDivider = 1;
                 else if (notesInBar.Count >= 20)
                     barDivider = 2;
-                else if (notesInBar.Count >= 8)
+                else if (notesInBar.Count >= 6)
                     barDivider = 4;
                 else
                     barDivider = 8;
@@ -211,7 +211,7 @@ namespace Beat360fyerPlugin
                     int rotationCount = 1;
                     if (notesInBar.Count <= 2 && notesInBarBeat.Count >= 2)
                         rotationCount = 3;
-                    else if (notesInBar.Count <= 8 && notesInBarBeat.Count >= 2)
+                    else if (notesInBar.Count <= 6 && notesInBarBeat.Count >= 2)
                         rotationCount = 2;
 
                     // Place the rotation event after or before the note?
@@ -284,7 +284,7 @@ namespace Beat360fyerPlugin
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
                     // If wall is uncomfortable for 360Degree mode, remove it
-                    if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.obstacleType == ObstacleType.FullHeight && ob.lineIndex == 0 && ob.width > 1))
+                    if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
                         ob.duration = 0;
