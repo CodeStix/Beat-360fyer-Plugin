@@ -209,10 +209,14 @@ namespace Beat360fyerPlugin
                     // Determine amount to rotate at once
                     // TODO: Create formula out of these if statements
                     int rotationCount = 1;
-                    if (notesInBar.Count <= 2 && notesInBarBeat.Count >= 2)
-                        rotationCount = 3;
-                    else if (notesInBar.Count <= 6 && notesInBarBeat.Count >= 2)
-                        rotationCount = 2;
+                    float timeDiff = nextNoteTime - firstNoteTime;
+                    if (notesInBarBeat.Count >= 2)
+                    {
+                        if (timeDiff >= barLength)
+                            rotationCount = 3;
+                        else if (timeDiff >= barLength / 4)
+                            rotationCount = 2;
+                    }
 
                     // Place the rotation event after or before the note?
                     bool placeAfter = true; // notesInBarBeat.All((e) => Math.Abs(e.time - firstTime) < 0.001f);
