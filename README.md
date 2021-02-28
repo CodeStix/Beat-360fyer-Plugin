@@ -11,6 +11,8 @@ A Beat Saber plugin to play any beatmap in 360 degree mode. This is the successo
 - You can install this mod using ModAssistant.
 - Or install this mod manually my downloading a release from the [releases](https://github.com/CodeStix/Beat-360fyer-Plugin/releases) tab and placing it in the `Plugins/` directory of your modded Beat Saber installation.
 
+After doing this, **every** beatmap will have the 360/90 degree mode.
+
 ## Algorithm
 
 The algorithm is completely deterministic and does not use random chance, it generates rotation events based on the notes in the *Standard* beatmap. 
