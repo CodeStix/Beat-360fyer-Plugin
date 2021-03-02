@@ -21,4 +21,5 @@ The algorithm is completely deterministic and does not use random chance, it gen
 
 ## Todo
 
+- Settings menu
 - Wall generator :open_mouth:
