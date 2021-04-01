@@ -103,7 +103,7 @@ namespace Beat360fyerPlugin
             width = data.width;
         }
 
-        public ModObstacleData(float time, int lineIndex, ObstacleType type, float duration, int width) : base(time, lineIndex)
+        public ModObstacleData(float time, int lineIndex, ObstacleType type, float duration, int width = 1) : base(time, lineIndex)
         {
             obstacleType = type;
             this.duration = duration;

@@ -16,7 +16,7 @@ namespace Beat360fyerPlugin.Patches
     {
         private static HashSet<IDifficultyBeatmap> generated = new HashSet<IDifficultyBeatmap>();
 
-        static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
+        static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ref ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
             Plugin.Log.Info($"Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
 
@@ -24,6 +24,14 @@ namespace Beat360fyerPlugin.Patches
             if (startingGameModeName == GameModeHelper.GENERATED_360DEGREE_MODE || startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
             {
                 Plugin.Log.Info($"Generating rotation events for {startingGameModeName}...");
+
+                // Colors are not copied from standard mode for some reason? Enforce it here
+                var mapCustomColors = difficultyBeatmap.level.environmentInfo?.colorScheme?.colorScheme;
+                if (mapCustomColors != null && overrideColorScheme == null)
+                {
+                    Plugin.Log.Info($"Overriding custom colors with {mapCustomColors.environmentColor0} {mapCustomColors.environmentColor1}");
+                    overrideColorScheme = mapCustomColors;
+                }
 
                 if (!generated.Contains(difficultyBeatmap))
                 {

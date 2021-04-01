@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Beat360fyerPlugin
 {
+
     public class Generator360
     {
         /// <summary>
@@ -41,6 +42,10 @@ namespace Beat360fyerPlugin
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
         public float WallBackCut { get; set; } = 0.3f;
+        /// <summary>
+        /// True if you want to generate walls, walls are cool in 360 mode
+        /// </summary>
+        public bool WallGenerator { get; set; } = true;
 
         private static int Floor(float f)
         {
@@ -174,6 +179,8 @@ namespace Beat360fyerPlugin
                 else
                     barDivider = 8;
 
+                //data.objects.Add(new ModObstacleData(currentBarStart, i % 2 == 0 ? 0 : 3, ObstacleType.FullHeight, barLength));
+
                 if (barDivider <= 0)
                     continue;
 #if DEBUG
@@ -188,7 +195,7 @@ namespace Beat360fyerPlugin
                     {
                         notesInBarBeat.Add(notesInBar[k]);
                     }
-
+                    
 #if DEBUG
                     // Debug purpose
                     if (j != 0)
@@ -265,6 +272,11 @@ namespace Beat360fyerPlugin
 
                     // Finally rotate
                     Rotate(rotationTime, rotation);
+
+                    if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
+                        data.objects.Add(new ModObstacleData(currentBarStart, 3, ObstacleType.FullHeight, dividedBarLength));
+                    if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
+                        data.objects.Add(new ModObstacleData(currentBarStart, 0, ObstacleType.FullHeight, dividedBarLength));
 
 #if DEBUG
                     Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");
