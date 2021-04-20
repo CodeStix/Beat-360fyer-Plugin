@@ -23,7 +23,7 @@ The algorithm is completely deterministic and does not use random chance, it gen
 
 Currently, there is no settings menu. You can tweak some settings in the `UserData/Beat-360fyer-Plugin.json` config file.
 
-```json
+```js
 {
   // True if you want to enable 360 degree mode generation (default = true)
   "ShowGenerated360": true,
