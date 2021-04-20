@@ -37,11 +37,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.02f;
+        public float WallFrontCut { get; set; } = 0.05f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.2f;
+        public float WallBackCut { get; set; } = 0.35f;
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
@@ -93,7 +93,7 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.events.Add(new ModEvent(time, BeatmapEventType.Event14, amount > 0 ? 3 + amount : 4 + amount));
+                data.events.Add(new ModEvent(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
 
             float beatDuration = 60f / bm.level.beatsPerMinute;
@@ -292,15 +292,16 @@ namespace Beat360fyerPlugin
 
                         if (generateWall)
                         {
-                            Plugin.Log.Info($"Generate wall at {wallTime}");
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
-                                data.objects.Add(new ModObstacleData(wallTime, 3, ObstacleType.FullHeight, wallDuration));
+                            {
+                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.FullHeight : ObstacleType.Top;
+                                data.objects.Add(new ModObstacleData(wallTime, 3, type, wallDuration));
+                            }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
-                                data.objects.Add(new ModObstacleData(wallTime, 0, ObstacleType.FullHeight, wallDuration));
-                        }
-                        else
-                        {
-                            Plugin.Log.Info($"Not generating wall at {wallTime}, already a wall");
+                            {
+                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.FullHeight : ObstacleType.Top;
+                                data.objects.Add(new ModObstacleData(wallTime, 0, type, wallDuration));
+                            }
                         }
                     }
 
