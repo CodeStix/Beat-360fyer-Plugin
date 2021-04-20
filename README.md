@@ -2,7 +2,7 @@
 A Beat Saber plugin to play any beatmap in 360 degree mode. This is the successor to [Beat-360fyer](https://github.com/CodeStix/Beat-360fyer), the desktop application version.
 
 
-![showcase](https://github.com/CodeStix/Beat-360fyer/raw/master/Build/Demos/beatsaber.gif)
+[![showcase video](https://img.youtube.com/vi/xUDdStGQwq0/0.jpg)](https://www.youtube.com/watch?v=xUDdStGQwq0)
 
 *(Jaroslav Beck - Beat Saber) Left: Standard; Right: Generated 360 mode*
 
