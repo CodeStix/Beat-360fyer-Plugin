@@ -207,12 +207,16 @@ namespace Beat360fyerPlugin
                     if (notesInBarBeat.Count == 0) 
                         continue;
 
-                    float firstNoteTime = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
-                    float nextNoteTime = notesInBarBeat.FirstOrDefault((e) => e.time - firstNoteTime > 0.001f)?.time ?? (k < notesInBar.Count ? notesInBar[k].time : i < notes.Count ? notes[i].time : float.MaxValue);
+                    // Determine the rotation direction based on the last notes in the bar
+                    ModNoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
+                    IEnumerable<ModNoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
 
                     // Amount of notes pointing to the left/right
-                    int leftCount = notesInBarBeat.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
-                    int rightCount = notesInBarBeat.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+                    int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
+                    int rightCount = lastNotes.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+
+                    float firstNoteTime = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
+                    float nextNoteTime = notesInBarBeat.FirstOrDefault((e) => e.time - firstNoteTime > 0.001f)?.time ?? (k < notesInBar.Count ? notesInBar[k].time : i < notes.Count ? notes[i].time : float.MaxValue);
 
                     // Determine amount to rotate at once
                     // TODO: Create formula out of these if statements
@@ -224,20 +228,6 @@ namespace Beat360fyerPlugin
                             rotationCount = 3;
                         else if (timeDiff >= barLength / 4)
                             rotationCount = 2;
-                    }
-
-                    // Place the rotation event after or before the note?
-                    bool placeAfter = true; // notesInBarBeat.All((e) => Math.Abs(e.time - firstTime) < 0.001f);
-                    float rotationTime;
-                    if (placeAfter)
-                    {
-                        // Place the rotation event after the last note
-                        rotationTime = notesInBarBeat[notesInBarBeat.Count - 1].time + 0.01f;
-                    }
-                    else
-                    {
-                        // Place the rotation event before the first note
-                        rotationTime = firstNoteTime - 0.01f;
                     }
 
                     int rotation = 0;
@@ -272,7 +262,7 @@ namespace Beat360fyerPlugin
                     }
 
                     // Finally rotate
-                    Rotate(rotationTime, rotation);
+                    Rotate(lastNote.time + 0.01f, rotation);
 
                     if (WallGenerator)
                     {
@@ -306,7 +296,7 @@ namespace Beat360fyerPlugin
                     }
 
 #if DEBUG
-                    Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");
+                    Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},lastNotes={lastNotes.Count()},rotationTime={lastNote.time + 0.01f},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");
 #endif
                 }
 
