@@ -5,11 +5,14 @@ using IPA.Config.Stores;
 [assembly: InternalsVisibleTo(GeneratedStore.AssemblyVisibilityTarget)]
 namespace Beat360fyerPlugin
 {
+
     internal class Config
     {
         public static Config Instance { get; set; }
         public virtual bool ShowGenerated360 { get; set; } = true;
-        public virtual bool ShowGenerated90 { get; set; } = false;
+        public virtual bool ShowGenerated90 { get; set; } = true;
+        public virtual bool EnableWallGenerator { get; set; } = true;
+        
 
         /// <summary>
         /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).

@@ -15,13 +15,13 @@ namespace Beat360fyerPlugin
         /// </summary>
         public float PreferredBarDuration { get; set; } = 1.84f;  // Calculated from 130 bpm, which is a pretty standard bpm (60 / 130 bpm * 4 whole notes per bar ~= 1.84)
         /// <summary>
-        /// The amount of rotations before stopping rotation events (rip cable otherwise) 
+        /// The amount of rotations before stopping rotation events (rip cable otherwise) (24 is one full rotation)
         /// </summary>
-        public int LimitRotations { get; set; } = 36;
+        public int LimitRotations { get; set; } = 28;
         /// <summary>
-        /// The amount of rotations before preferring the other direction
+        /// The amount of rotations before preferring the other direction (24 is one full rotation)
         /// </summary>
-        public int BottleneckRotations { get; set; } = 18;
+        public int BottleneckRotations { get; set; } = 16;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
@@ -37,7 +37,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.05f;
+        public float WallFrontCut { get; set; } = 0.1f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>

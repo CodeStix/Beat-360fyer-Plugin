@@ -25,14 +25,12 @@ namespace Beat360fyerPlugin
             Instance = this;
             Log = logger;
             Config.Instance = conf.Generated<Config>();
-            Log.Info($"Beat-360fyer-Plugin initialized. {Config.Instance.ShowGenerated90} {Config.Instance.ShowGenerated360}");
+            Log.Info($"Beat-360fyer-Plugin initialized.");
         }
 
         [OnStart]
         public void OnApplicationStart()
         {
-            Log.Info("Starting Beat360fyer plugin");
-
             Harmony harmony = new Harmony("nl.codestix.Beat360fyerPlugin");
             harmony.PatchAll();
         }
