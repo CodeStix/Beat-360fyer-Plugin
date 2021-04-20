@@ -33,6 +33,12 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
   "EnableWallGenerator": true
 }
 ```
+## How to build
+
+To test and build this project locally, do the following:
+1. Clone this repo & open the project in Visual Studio
+2. Make sure to add the right dll references. The needed dlls are located in your modded Beat Saber installation folder.
+3. Build. Visual Studio should copy the plugin to your Beat Saber installation automatically.
 
 ## Todo
 
