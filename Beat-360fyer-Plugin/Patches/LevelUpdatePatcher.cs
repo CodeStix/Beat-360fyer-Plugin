@@ -26,7 +26,7 @@ namespace Beat360fyerPlugin.Patches
                 Plugin.Log.Info($"Generating rotation events for {startingGameModeName}...");
 
                 // Colors are not copied from standard mode for some reason? Enforce it here
-                var mapCustomColors = difficultyBeatmap.level.environmentInfo?.colorScheme?.colorScheme;
+                var mapCustomColors = difficultyBeatmap.level.environmentInfo?.colorScheme?.colorScheme; 
                 if (mapCustomColors != null && overrideColorScheme == null)
                 {
                     Plugin.Log.Info($"Overriding custom colors with {mapCustomColors.environmentColor0} {mapCustomColors.environmentColor1}");

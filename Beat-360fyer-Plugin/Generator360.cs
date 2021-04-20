@@ -37,11 +37,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.13f;
+        public float WallFrontCut { get; set; } = 0.05f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.3f;
+        public float WallBackCut { get; set; } = 0.4f;
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
@@ -93,7 +93,7 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.events.Add(new ModEvent(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+                data.events.Add(new ModEvent(time, BeatmapEventType.Event14, amount > 0 ? 3 + amount : 4 + amount));
             }
 
             float beatDuration = 60f / bm.level.beatsPerMinute;
@@ -138,12 +138,13 @@ namespace Beat360fyerPlugin
 #endif
                     int leftCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+
                     int spinDirection;
-                    if (leftCount == rightCount)
+                    if (leftCount == rightCount) 
                         spinDirection = previousDirection ? -1 : 1;
                     else if (leftCount > rightCount)
                         spinDirection = -1;
-                    else // direction > 0
+                    else
                         spinDirection = 1;
 
                     float spinStep = TotalSpinTime / 24;
@@ -155,7 +156,7 @@ namespace Beat360fyerPlugin
                     // Do not emit more rotation events after this
                     previousSpinTime = currentBarStart;
                     continue;
-                }
+                } 
 
                 // Divide the current bar in x pieces (or notes), for each piece, a rotation event CAN be emitted
                 // Is calculated from the amount of notes in the current bar
@@ -273,10 +274,35 @@ namespace Beat360fyerPlugin
                     // Finally rotate
                     Rotate(rotationTime, rotation);
 
-                    if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
-                        data.objects.Add(new ModObstacleData(currentBarStart, 3, ObstacleType.FullHeight, dividedBarLength));
-                    if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
-                        data.objects.Add(new ModObstacleData(currentBarStart, 0, ObstacleType.FullHeight, dividedBarLength));
+                    if (WallGenerator)
+                    {
+                        float wallTime = firstBeatmapNoteTime + currentBarStart + j * dividedBarLength;
+                        float wallDuration = dividedBarLength;
+
+                        // Check if there is already a wall
+                        bool generateWall = true;
+                        foreach (ModObstacleData obs in data.objects.OfType<ModObstacleData>())
+                        {
+                            if (obs.time + obs.duration >= wallTime && obs.time < wallTime + wallDuration)
+                            {
+                                generateWall = false;
+                                break;
+                            }
+                        }
+
+                        if (generateWall)
+                        {
+                            Plugin.Log.Info($"Generate wall at {wallTime}");
+                            if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
+                                data.objects.Add(new ModObstacleData(wallTime, 3, ObstacleType.FullHeight, wallDuration));
+                            if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
+                                data.objects.Add(new ModObstacleData(wallTime, 0, ObstacleType.FullHeight, wallDuration));
+                        }
+                        else
+                        {
+                            Plugin.Log.Info($"Not generating wall at {wallTime}, already a wall");
+                        }
+                    }
 
 #if DEBUG
                     Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},rotationTime={rotationTime},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");

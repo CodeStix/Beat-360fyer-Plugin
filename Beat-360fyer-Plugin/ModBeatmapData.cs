@@ -134,9 +134,19 @@ namespace Beat360fyerPlugin
         public ModNoteData(float time, int lineIndex, NoteLineLayer layer, NoteCutDirection cutDirection, ColorType type) : base(time, lineIndex)
         {
             this.cutDirection = cutDirection;
-            noteLineLayer = layer;
             this.colorType = type;
+            noteLineLayer = layer;
         }
+
+        /// <summary>
+        /// Creates bomb.
+        /// </summary>
+        public ModNoteData(float time, int lineIndex, NoteLineLayer layer) : base(time, lineIndex)
+        {
+            this.cutDirection = NoteCutDirection.None;
+            this.colorType = ColorType.None;
+            noteLineLayer = layer;
+        } 
 
         public override BeatmapObjectData ToObject()
         {
