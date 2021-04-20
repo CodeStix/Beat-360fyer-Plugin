@@ -1,7 +1,7 @@
 # Beat-360fyer-Plugin
 A Beat Saber plugin to play any beatmap in 360 or 90 degree mode. 
 
-## Showcase
+#### Showcase video
 
 [![showcase video](https://img.youtube.com/vi/xUDdStGQwq0/0.jpg)](https://www.youtube.com/watch?v=xUDdStGQwq0)
 
