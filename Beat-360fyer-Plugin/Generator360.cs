@@ -37,11 +37,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.05f;
+        public float WallFrontCut { get; set; } = 0.02f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.4f;
+        public float WallBackCut { get; set; } = 0.2f;
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
@@ -336,15 +336,19 @@ namespace Beat360fyerPlugin
                     {
                         if (cutTime >= ob.time - WallFrontCut && cutTime < ob.time + ob.duration + WallBackCut)
                         {
+                            float firstPartTime = ob.time;
+                            float firstPartDuration = (cutTime - WallBackCut) - firstPartTime;
+                            float secondPartTime = cutTime + WallFrontCut;
+                            float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
+
                             // Split the wall in half by creating a second wall
-                            float secondPartDuration = ob.duration - (cutTime - ob.time) - WallBackCut;
-                            ModObstacleData secondPart = new ModObstacleData(cutTime + WallBackCut, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
+                            ModObstacleData secondPart = new ModObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
 
                             // Modify first half of wall
-                            float firstPartDuration = (cutTime - ob.time) - WallFrontCut;
 #if DEBUG
                             Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
 #endif
+                            ob.time = firstPartTime;
                             ob.duration = firstPartDuration;
                         }
                     }
