@@ -19,7 +19,21 @@ The algorithm is completely deterministic and does not use random chance, it gen
 
 **It also makes sure to not ruin your cable by rotating too mush!**
 
+## Config file
+
+Currently, there is no settings menu. You can tweak some settings in the `UserData/Beat-360fyer-Plugin.json` config file.
+
+```json
+{
+  // True if you want to enable 360 degree mode generation (default = true)
+  "ShowGenerated360": true,
+  // True if you want to enable 90 degree mode generation (default = true)
+  "ShowGenerated90": true,
+  // Set to false to disable wall generation (default = true)
+  "EnableWallGenerator": true
+}
+```
+
 ## Todo
 
 - Settings menu
-- Wall generator :open_mouth:
