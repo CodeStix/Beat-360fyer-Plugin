@@ -38,7 +38,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.12f;
+        public float WallFrontCut { get; set; } = 0.16f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
@@ -289,7 +289,7 @@ namespace Beat360fyerPlugin
                                 // Workaround for error, why tf does this work??
                                 dynamic t = Trees.Tree();
                                 t.bpm = bm.level.beatsPerMinute;
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.FullHeight : ObstacleType.Top;
+                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.Top : ObstacleType.FullHeight;
                                 data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
@@ -297,7 +297,7 @@ namespace Beat360fyerPlugin
                                 // Workaround for error, why tf does this work??
                                 dynamic t = Trees.Tree();
                                 t.bpm = bm.level.beatsPerMinute;
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.FullHeight : ObstacleType.Top;
+                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.Top : ObstacleType.FullHeight;
                                 data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
                             }
                         }
@@ -320,15 +320,16 @@ namespace Beat360fyerPlugin
             while (obstacles.Count > 0)
             {
                 CustomObstacleData ob = obstacles.Dequeue();
-                if (ob.duration <= 0f)
-                    continue;
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
+                    if (ob.duration <= 0f)
+                        break;
+
                     // If wall is uncomfortable for 360Degree mode, remove it
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
-                        ob.UpdateDuration(0);
+                        ob.UpdateDuration(0f);
                     }
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -340,16 +341,34 @@ namespace Beat360fyerPlugin
                             float secondPartTime = cutTime + WallFrontCut;
                             float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
 
-                            // Split the wall in half by creating a second wall
-                            CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, ob.customData);
-                            //data.objects.Add(secondPart);
+                            if (secondPartDuration > 0f && firstPartDuration <= 0.01f)
+                            {
+                                ob.MoveTime(secondPartTime);
+                                ob.UpdateDuration(secondPartDuration);
+                            }
+                            else
+                            {
+                                // Split the wall in half by creating a second wall
+                                if (secondPartDuration > 0.01f)
+                                {
+                                    dynamic t = Trees.Copy(ob.customData);
+                                    t.bpm = bm.level.beatsPerMinute;
+                                    CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, t);
+                                    data.objects.Add(secondPart);
+                                    obstacles.Enqueue(secondPart);
+                                }
 
-                            // Modify first half of wall
+                                // Modify first half of wall
+                                ob.MoveTime(firstPartTime);
+                                ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
+                            }
+
+
+                           
 #if DEBUG
-                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration})");
 #endif
-                            ob.MoveTime(firstPartTime);
-                            ob.UpdateDuration(firstPartDuration < 0.01f ? 0f : firstPartDuration);
+                            
                         }
                     }
                 }
