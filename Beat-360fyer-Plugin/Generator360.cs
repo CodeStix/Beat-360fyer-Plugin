@@ -39,11 +39,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.26f;
+        public float WallFrontCut { get; set; } = 0.2f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.46f;
+        public float WallBackCut { get; set; } = 0.45f;
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
