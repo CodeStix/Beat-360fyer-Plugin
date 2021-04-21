@@ -46,9 +46,13 @@
     <Reference Include="Colors">
       <HintPath>C:\FastGames\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Colors.dll</HintPath>
     </Reference>
+    <Reference Include="CustomJSONData">
+      <HintPath>C:\FastGames\steamapps\common\Beat Saber\Plugins\CustomJSONData.dll</HintPath>
+    </Reference>
     <Reference Include="GameplayCore">
       <HintPath>C:\FastGames\steamapps\common\Beat Saber\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />

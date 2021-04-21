@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CustomJSONData.CustomBeatmap;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,166 +9,174 @@ namespace Beat360fyerPlugin
 {
     public class ModBeatmapData
     {
-        public int numberOfLines;
-        public List<ModObject> objects = new List<ModObject>();
-        public List<ModEvent> events = new List<ModEvent>();
+        public List<BeatmapObjectData> objects = new List<BeatmapObjectData>();
+        public List<BeatmapEventData> events = new List<BeatmapEventData>();
 
-        public ModBeatmapData(BeatmapData from)
+        private CustomBeatmapData from;
+
+        public ModBeatmapData(CustomBeatmapData from)
         {
-            numberOfLines = from.numberOfLines;
+            this.from = from;
             foreach (BeatmapObjectData d in from.beatmapObjectsData)
-                objects.Add(ModObject.FromObject(d));
+                objects.Add(d);
             foreach (BeatmapEventData e in from.beatmapEventsData)
-                events.Add(new ModEvent(e));
+                events.Add(e);
         }
 
-        public BeatmapData ToBeatmap()
+        public CustomBeatmapData ToBeatmap()
         {
-            BeatmapData bm = new BeatmapData(numberOfLines);
-            foreach (ModObject o in objects.OrderBy((e) => e.time))
-                if (!(o is ModObstacleData ob && ob.duration <= 0f))
-                    bm.AddBeatmapObjectData(o.ToObject());
-            foreach (ModEvent o in events.OrderBy((e) => e.time))
-                bm.AddBeatmapEventData(o.ToEvent());
+            CustomBeatmapData bm = new CustomBeatmapData(from.numberOfLines);
+            //foreach (BeatmapObjectData o in this.from.beatmapObjectsData.OrderBy((e) => e.time))
+            //    if (!(o is ObstacleData ob && ob.duration <= 0f))
+            //        bm.AddBeatmapObjectData(o);
+            //foreach (BeatmapEventData o in this.from.beatmapEventsData.OrderBy((e) => e.time))
+            //    bm.AddBeatmapEventData(o);
+            foreach (BeatmapObjectData o in objects.OrderBy((e) => e.time))
+                if (!(o is ObstacleData ob && ob.duration <= 0f))
+                    bm.AddBeatmapObjectData(o);
+            foreach (BeatmapEventData o in events.OrderBy((e) => e.time))
+                bm.AddBeatmapEventData(o);
+            CustomBeatmapData.CopyAvailableSpecialEventsPerKeywordDictionary(this.from, bm);
+            CustomBeatmapData.CopyCustomData(this.from, bm);
             return bm;
         }
     }
 
-    public class ModEvent
-    {
-        public BeatmapEventType type;
-        public float time;
-        public int value;
+    //public class ModEvent
+    //{
+    //    public BeatmapEventType type;
+    //    public float time;
+    //    public int value;
 
-        public ModEvent(BeatmapEventData ev)
-        {
-            time = ev.time;
-            type = ev.type;
-            value = ev.value;
-        }
+    //    public ModEvent(BeatmapEventData ev)
+    //    {
+    //        time = ev.time;
+    //        type = ev.type;
+    //        value = ev.value;
+    //    }
 
-        public ModEvent(float time, BeatmapEventType type, int value)
-        {
-            this.time = time;
-            this.type = type;
-            this.value = value;
-        }
+    //    public ModEvent(float time, BeatmapEventType type, int value)
+    //    {
+    //        this.time = time;
+    //        this.type = type;
+    //        this.value = value;
+    //    }
 
-        public BeatmapEventData ToEvent()
-        {
-            return new BeatmapEventData(time, type, value);
-        }
-    }
+    //    public BeatmapEventData ToEvent()
+    //    {
+    //        return new BeatmapEventData(time, type, value);
+    //    }
+    //}
 
-    public abstract class ModObject
-    {
-        public float time;
-        public int lineIndex;
+    //public abstract class ModObject
+    //{
+    //    public float time;
+    //    public int lineIndex;
 
-        public ModObject(float time, int lineIndex)
-        {
-            this.time = time;
-            this.lineIndex = lineIndex;
-        }
+    //    public ModObject(float time, int lineIndex)
+    //    {
+    //        this.time = time;
+    //        this.lineIndex = lineIndex;
+    //    }
 
-        public ModObject(BeatmapObjectData data)
-        {
-            this.time = data.time;
-            this.lineIndex = data.lineIndex;
-        }
+    //    public ModObject(BeatmapObjectData data)
+    //    {
+    //        this.time = data.time;
+    //        this.lineIndex = data.lineIndex;
+    //    }
 
-        public static ModObject FromObject(BeatmapObjectData obj)
-        {
-            if (obj is NoteData note)
-                return new ModNoteData(note);
-            else if (obj is ObstacleData obstacle)
-                return new ModObstacleData(obstacle);
-            else if (obj is WaypointData way)
-                return new ModWaypointData(way);
-            throw new InvalidOperationException("Invalid type " + obj.GetType().FullName);
-        }
+    //    public static ModObject FromObject(BeatmapObjectData obj)
+    //    {
+    //        if (obj is NoteData note)
+    //            return new ModNoteData(note);
+    //        else if (obj is ObstacleData obstacle)
+    //            return new ModObstacleData(obstacle);
+    //        else if (obj is WaypointData way)
+    //            return new ModWaypointData(way);
+    //        throw new InvalidOperationException("Invalid type " + obj.GetType().FullName);
+    //    }
 
-        public abstract BeatmapObjectData ToObject();
-    }
+    //    public abstract BeatmapObjectData ToObject();
+    //}
 
-    public class ModObstacleData : ModObject
-    {
-        public ObstacleType obstacleType;
-        public float duration;
-        public int width;
+    //public class ModObstacleData : ModObject
+    //{
+    //    public ObstacleType obstacleType;
+    //    public float duration;
+    //    public int width;
 
-        public ModObstacleData(ObstacleData data) : base(data)
-        {
-            obstacleType = data.obstacleType;
-            duration = data.duration;
-            width = data.width;
-        }
+    //    public ModObstacleData(ObstacleData data) : base(data)
+    //    {
+    //        obstacleType = data.obstacleType;
+    //        duration = data.duration;
+    //        width = data.width;
+    //    }
 
-        public ModObstacleData(float time, int lineIndex, ObstacleType type, float duration, int width = 1) : base(time, lineIndex)
-        {
-            obstacleType = type;
-            this.duration = duration;
-            this.width = width;
-        }
+    //    public ModObstacleData(float time, int lineIndex, ObstacleType type, float duration, int width = 1) : base(time, lineIndex)
+    //    {
+    //        obstacleType = type;
+    //        this.duration = duration;
+    //        this.width = width;
+    //    }
 
-        public override BeatmapObjectData ToObject()
-        {
-            return new ObstacleData(time, lineIndex, obstacleType, duration, width);
-        }
-    }
+    //    public override BeatmapObjectData ToObject()
+    //    {
+    //        return new ObstacleData(time, lineIndex, obstacleType, duration, width);
+    //    }
+    //}
 
-    public class ModNoteData : ModObject
-    {
-        public NoteCutDirection cutDirection;
-        public NoteLineLayer noteLineLayer;
-        public ColorType colorType;
+    //public class ModNoteData : ModObject
+    //{
+    //    public NoteCutDirection cutDirection;
+    //    public NoteLineLayer noteLineLayer;
+    //    public ColorType colorType;
 
-        public bool IsBomb => cutDirection == NoteCutDirection.None;
+    //    public bool IsBomb => cutDirection == NoteCutDirection.None;
 
-        public ModNoteData(NoteData data) : base(data)
-        {
-            cutDirection = data.cutDirection;
-            noteLineLayer = data.noteLineLayer;
-            colorType = data.colorType;
-        }
+    //    public ModNoteData(NoteData data) : base(data)
+    //    {
+    //        cutDirection = data.cutDirection;
+    //        noteLineLayer = data.noteLineLayer;
+    //        colorType = data.colorType;
+    //    }
 
-        public ModNoteData(float time, int lineIndex, NoteLineLayer layer, NoteCutDirection cutDirection, ColorType type) : base(time, lineIndex)
-        {
-            this.cutDirection = cutDirection;
-            this.colorType = type;
-            noteLineLayer = layer;
-        }
+    //    public ModNoteData(float time, int lineIndex, NoteLineLayer layer, NoteCutDirection cutDirection, ColorType type) : base(time, lineIndex)
+    //    {
+    //        this.cutDirection = cutDirection;
+    //        this.colorType = type;
+    //        noteLineLayer = layer;
+    //    }
 
-        /// <summary>
-        /// Creates bomb.
-        /// </summary>
-        public ModNoteData(float time, int lineIndex, NoteLineLayer layer) : base(time, lineIndex)
-        {
-            this.cutDirection = NoteCutDirection.None;
-            this.colorType = ColorType.None;
-            noteLineLayer = layer;
-        } 
+    //    /// <summary>
+    //    /// Creates bomb.
+    //    /// </summary>
+    //    public ModNoteData(float time, int lineIndex, NoteLineLayer layer) : base(time, lineIndex)
+    //    {
+    //        this.cutDirection = NoteCutDirection.None;
+    //        this.colorType = ColorType.None;
+    //        noteLineLayer = layer;
+    //    } 
 
-        public override BeatmapObjectData ToObject()
-        {
-            return NoteData.CreateBasicNoteData(time, lineIndex, noteLineLayer, colorType, cutDirection);
-        }
-    }
+    //    public override BeatmapObjectData ToObject()
+    //    {
+    //        return NoteData.CreateBasicNoteData(time, lineIndex, noteLineLayer, colorType, cutDirection);
+    //    }
+    //}
 
-    public class ModWaypointData : ModObject
-    {
-        public OffsetDirection offsetDirection;
-        public NoteLineLayer noteLineLayer;
+    //public class ModWaypointData : ModObject
+    //{
+    //    public OffsetDirection offsetDirection;
+    //    public NoteLineLayer noteLineLayer;
 
-        public ModWaypointData(WaypointData data) : base(data)
-        {
-            offsetDirection = data.offsetDirection;
-            noteLineLayer = data.noteLineLayer;
-        }
+    //    public ModWaypointData(WaypointData data) : base(data)
+    //    {
+    //        offsetDirection = data.offsetDirection;
+    //        noteLineLayer = data.noteLineLayer;
+    //    }
 
-        public override BeatmapObjectData ToObject()
-        {
-            return new WaypointData(time, lineIndex, noteLineLayer, offsetDirection);
-        }
-    }
+    //    public override BeatmapObjectData ToObject()
+    //    {
+    //        return new WaypointData(time, lineIndex, noteLineLayer, offsetDirection);
+    //    }
+    //}
 }

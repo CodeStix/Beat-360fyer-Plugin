@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CustomJSONData;
+using CustomJSONData.CustomBeatmap;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,6 +8,23 @@ using System.Threading.Tasks;
 
 namespace Beat360fyerPlugin
 {
+    public static class Extensions
+    {
+        public static void SetBeatmapData(this IDifficultyBeatmap bm, BeatmapData data)
+        {
+            FieldHelper.Set(bm, "_beatmapData", data);
+        }
+
+        public static void SetDuration(this ObstacleData ob, float duration)
+        {
+            FieldHelper.Set(ob, "duration", duration);
+        }
+
+        public static void SetTime(this ObstacleData ob, float time) 
+        {
+            FieldHelper.Set(ob, "time", time);
+        }
+    }
 
     public class Generator360
     {
@@ -45,7 +64,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
-        public bool WallGenerator { get; set; } = true;
+        public bool WallGenerator { get; set; } = false;
 
         private static int Floor(float f)
         {
@@ -55,7 +74,10 @@ namespace Beat360fyerPlugin
 
         public void Generate(IDifficultyBeatmap bm)
         {
-            ModBeatmapData data = new ModBeatmapData(bm.beatmapData);
+            ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
+
+            Plugin.Log.Info($"bm.beatmapData Type: {bm.beatmapData.GetType().FullName}");
+            Plugin.Log.Info($"beatmapObjectsData Type: {bm.beatmapData.beatmapObjectsData.First().GetType().FullName}");
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -93,7 +115,7 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.events.Add(new ModEvent(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+                data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount, Trees.Tree()));
             }
 
             float beatDuration = 60f / bm.level.beatsPerMinute;
@@ -105,9 +127,9 @@ namespace Beat360fyerPlugin
             while (barLength < PreferredBarDuration * 0.75f)
                 barLength *= 2f;
 
-            List<ModNoteData> notes = data.objects.OfType<ModNoteData>().ToList();
-            List<ModNoteData> notesInBar = new List<ModNoteData>();
-            List<ModNoteData> notesInBarBeat = new List<ModNoteData>();
+            List<NoteData> notes = data.objects.OfType<NoteData>().ToList();
+            List<NoteData> notesInBar = new List<NoteData>();
+            List<NoteData> notesInBarBeat = new List<NoteData>();
 
             // Align bars to first note, the first note (almost always) identifies the start of the first bar
             float firstBeatmapNoteTime = notes[0].time;
@@ -124,7 +146,8 @@ namespace Beat360fyerPlugin
                 notesInBar.Clear();
                 for (; i < notes.Count && notes[i].time - firstBeatmapNoteTime < currentBarEnd; i++)
                 {
-                    if (!notes[i].IsBomb)
+                    // If isn't bomb
+                    if (notes[i].cutDirection != NoteCutDirection.None)
                         notesInBar.Add(notes[i]);
                 }
 
@@ -208,8 +231,8 @@ namespace Beat360fyerPlugin
                         continue;
 
                     // Determine the rotation direction based on the last notes in the bar
-                    ModNoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
-                    IEnumerable<ModNoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
+                    NoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
+                    IEnumerable<NoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
 
                     // Amount of notes pointing to the left/right
                     int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
@@ -271,7 +294,7 @@ namespace Beat360fyerPlugin
 
                         // Check if there is already a wall
                         bool generateWall = true;
-                        foreach (ModObstacleData obs in data.objects.OfType<ModObstacleData>())
+                        foreach (ObstacleData obs in data.objects.OfType<ObstacleData>())
                         {
                             if (obs.time + obs.duration >= wallTime && obs.time < wallTime + wallDuration)
                             {
@@ -285,12 +308,12 @@ namespace Beat360fyerPlugin
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
                             {
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.FullHeight : ObstacleType.Top;
-                                data.objects.Add(new ModObstacleData(wallTime, 3, type, wallDuration));
+                                //data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, Trees.Tree()));
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
                             {
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.FullHeight : ObstacleType.Top;
-                                data.objects.Add(new ModObstacleData(wallTime, 0, type, wallDuration));
+                                //data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, Trees.Tree()));
                             }
                         }
                     }
@@ -308,10 +331,10 @@ namespace Beat360fyerPlugin
 
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            Queue<ModObstacleData> obstacles = new Queue<ModObstacleData>(data.objects.OfType<ModObstacleData>());
+            Queue<CustomObstacleData> obstacles = new Queue<CustomObstacleData>(data.objects.OfType<CustomObstacleData>());
             while (obstacles.Count > 0)
             {
-                ModObstacleData ob = obstacles.Dequeue();
+                CustomObstacleData ob = obstacles.Dequeue();
                 if (ob.duration <= 0f)
                     continue;
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
@@ -320,7 +343,7 @@ namespace Beat360fyerPlugin
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
-                        ob.duration = 0;
+                        ob.SetDuration(0);
                     }
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -333,14 +356,15 @@ namespace Beat360fyerPlugin
                             float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
 
                             // Split the wall in half by creating a second wall
-                            ModObstacleData secondPart = new ModObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
+                            CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, ob.customData);
+                            //data.objects.Add(secondPart);
 
                             // Modify first half of wall
 #if DEBUG
-                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+                            //Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
 #endif
-                            ob.time = firstPartTime;
-                            ob.duration = firstPartDuration;
+                            ob.SetTime(firstPartTime);
+                            ob.SetDuration(firstPartDuration);
                         }
                     }
                 }
