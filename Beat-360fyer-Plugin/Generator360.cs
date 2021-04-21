@@ -2,6 +2,7 @@
 using CustomJSONData.CustomBeatmap;
 using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -38,11 +39,11 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Amount of time in seconds to cut of the front of a wall when rotating towards it.
         /// </summary>
-        public float WallFrontCut { get; set; } = 0.16f;
+        public float WallFrontCut { get; set; } = 0.26f;
         /// <summary>
         /// Amount of time in seconds to cut of the back of a wall when rotating towards it.
         /// </summary>
-        public float WallBackCut { get; set; } = 0.38f;
+        public float WallBackCut { get; set; } = 0.46f;
         /// <summary>
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
@@ -173,7 +174,7 @@ namespace Beat360fyerPlugin
                 int barDivider;
                 if (notesInBar.Count >= 52)
                     barDivider = 0; // Too mush notes, do not rotate
-                else if (notesInBar.Count >= 32)
+                else if (notesInBar.Count >= 36)
                     barDivider = 1;
                 else if (notesInBar.Count >= 20)
                     barDivider = 2;
@@ -324,6 +325,12 @@ namespace Beat360fyerPlugin
                 {
                     if (ob.duration <= 0f)
                         break;
+                    bool noCutMargin = false;
+                    if (ob.customData is ExpandoObject && ob.customData != null)
+                    {
+                        IDictionary<string, object> customDataDict = (IDictionary<string, object>)ob.customData;
+                        noCutMargin = customDataDict.ContainsKey("_position");
+                    }
 
                     // If wall is uncomfortable for 360Degree mode, remove it
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
@@ -334,11 +341,14 @@ namespace Beat360fyerPlugin
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
-                        if (cutTime >= ob.time - WallFrontCut && cutTime < ob.time + ob.duration + WallBackCut)
+                        int cutMultiplier = Math.Abs(cutAmount);
+                        float frontCut = noCutMargin ? 0f : WallFrontCut;
+                        float backCut = noCutMargin ? 0f : WallBackCut;
+                        if (cutTime >= ob.time - frontCut && cutTime < ob.time + ob.duration + backCut * cutMultiplier)
                         {
                             float firstPartTime = ob.time;
-                            float firstPartDuration = (cutTime - WallBackCut) - firstPartTime;
-                            float secondPartTime = cutTime + WallFrontCut;
+                            float firstPartDuration = (cutTime - backCut * cutMultiplier) - firstPartTime;
+                            float secondPartTime = cutTime + frontCut;
                             float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
 
                             if (secondPartDuration > 0f && firstPartDuration <= 0.01f)
@@ -363,10 +373,9 @@ namespace Beat360fyerPlugin
                                 ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
                             }
 
-
                            
 #if DEBUG
-                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration})");
+                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
 #endif
                             
                         }
