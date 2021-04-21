@@ -8,24 +8,6 @@ using System.Threading.Tasks;
 
 namespace Beat360fyerPlugin
 {
-    public static class Extensions
-    {
-        public static void SetBeatmapData(this IDifficultyBeatmap bm, BeatmapData data)
-        {
-            FieldHelper.Set(bm, "_beatmapData", data);
-        }
-
-        public static void SetDuration(this ObstacleData ob, float duration)
-        {
-            FieldHelper.Set(ob, "duration", duration);
-        }
-
-        public static void SetTime(this ObstacleData ob, float time) 
-        {
-            FieldHelper.Set(ob, "time", time);
-        }
-    }
-
     public class Generator360
     {
         /// <summary>
@@ -75,9 +57,6 @@ namespace Beat360fyerPlugin
         public void Generate(IDifficultyBeatmap bm)
         {
             ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
-
-            Plugin.Log.Info($"bm.beatmapData Type: {bm.beatmapData.GetType().FullName}");
-            Plugin.Log.Info($"beatmapObjectsData Type: {bm.beatmapData.beatmapObjectsData.First().GetType().FullName}");
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -307,13 +286,19 @@ namespace Beat360fyerPlugin
                         {
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
                             {
+                                // Workaround for error, why tf does this work??
+                                dynamic t = Trees.Tree();
+                                t.bpm = bm.level.beatsPerMinute;
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.FullHeight : ObstacleType.Top;
-                                //data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, Trees.Tree()));
+                                data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
                             {
+                                // Workaround for error, why tf does this work??
+                                dynamic t = Trees.Tree();
+                                t.bpm = bm.level.beatsPerMinute;
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.FullHeight : ObstacleType.Top;
-                                //data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, Trees.Tree()));
+                                data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
                             }
                         }
                     }
@@ -343,7 +328,7 @@ namespace Beat360fyerPlugin
                     if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
-                        ob.SetDuration(0);
+                        ob.UpdateDuration(0);
                     }
                     // If moved in direction of wall
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -361,10 +346,10 @@ namespace Beat360fyerPlugin
 
                             // Modify first half of wall
 #if DEBUG
-                            //Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
+                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPart.time}({secondPart.duration})");
 #endif
-                            ob.SetTime(firstPartTime);
-                            ob.SetDuration(firstPartDuration);
+                            ob.MoveTime(firstPartTime);
+                            ob.UpdateDuration(firstPartDuration < 0.01f ? 0f : firstPartDuration);
                         }
                     }
                 }
