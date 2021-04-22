@@ -173,13 +173,13 @@ namespace Beat360fyerPlugin
                 // ...        | ...
                 // TODO: Create formula out of these if statements
                 int barDivider;
-                if (notesInBar.Count >= 52)
+                if (notesInBar.Count >= 58)
                     barDivider = 0; // Too mush notes, do not rotate
-                else if (notesInBar.Count >= 36)
+                else if (notesInBar.Count >= 38)
                     barDivider = 1;
-                else if (notesInBar.Count >= 20)
+                else if (notesInBar.Count >= 26)
                     barDivider = 2;
-                else if (notesInBar.Count >= 6)
+                else if (notesInBar.Count >= 8)
                     barDivider = 4;
                 else
                     barDivider = 8;
@@ -264,6 +264,25 @@ namespace Beat360fyerPlugin
                             rotation = previousDirection ? rotationCount : -rotationCount;
                         }
                     }
+
+                    if (totalRotation >= BottleneckRotations && rotationCount > 1)
+                    {
+                        rotationCount = 1;
+                    }
+                    else if (totalRotation <= -BottleneckRotations && rotationCount < -1)
+                    {
+                        rotationCount = -1; 
+                    }
+
+                    if (totalRotation >= LimitRotations - 1 && rotationCount > 0)
+                    {
+                        rotationCount = -rotationCount;
+                    }
+                    else if (totalRotation <= -LimitRotations + 1 && rotationCount < 0)
+                    {
+                        rotationCount = -rotationCount;
+                    }
+
 
                     // Finally rotate
                     Rotate(lastNote.time + 0.01f, rotation);
