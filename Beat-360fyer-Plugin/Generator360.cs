@@ -27,7 +27,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>
-        public bool EnableSpin { get; set; } = true;
+        public bool EnableSpin { get; set; } = false;
         /// <summary>
         /// The total time 1 spin takes in seconds.
         /// </summary>
@@ -48,6 +48,7 @@ namespace Beat360fyerPlugin
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
         public bool WallGenerator { get; set; } = false;
+        
 
         private static int Floor(float f)
         {
@@ -121,7 +122,7 @@ namespace Beat360fyerPlugin
             for (int i = 0; i < notes.Count; )
             {
                 float currentBarStart = Floor((notes[i].time - firstBeatmapNoteTime) / barLength) * barLength;
-                float currentBarEnd = currentBarStart + barLength - 0.01f;
+                float currentBarEnd = currentBarStart + barLength - 0.001f;
 
                 notesInBar.Clear();
                 for (; i < notes.Count && notes[i].time - firstBeatmapNoteTime < currentBarEnd; i++)
@@ -131,10 +132,10 @@ namespace Beat360fyerPlugin
                         notesInBar.Add(notes[i]);
                 }
 
-                if (notesInBar.Count == 0) // If only bombs
+                if (notesInBar.Count == 0)
                     continue;
 
-                if (notesInBar.Count >= 2 && currentBarStart - previousSpinTime > SpinCooldown && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
+                if (EnableSpin && notesInBar.Count >= 2 && currentBarStart - previousSpinTime > SpinCooldown && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
                 {
 #if DEBUG
                     Plugin.Log.Info($"[Generator] Spin effect at {firstBeatmapNoteTime + currentBarStart}");

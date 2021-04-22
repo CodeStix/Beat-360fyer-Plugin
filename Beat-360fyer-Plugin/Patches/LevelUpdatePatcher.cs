@@ -33,8 +33,6 @@ namespace Beat360fyerPlugin.Patches
                     overrideColorScheme = mapCustomColors;
                 }
 
-                Plugin.Log.Info($"difficultyBeatmap Type: {difficultyBeatmap.GetType().FullName}");
-
                 if (!generated.Contains(difficultyBeatmap))
                 {
                     generated.Add(difficultyBeatmap);
