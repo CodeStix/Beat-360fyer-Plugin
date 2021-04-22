@@ -184,8 +184,6 @@ namespace Beat360fyerPlugin
                 else
                     barDivider = 8;
 
-                //data.objects.Add(new ModObstacleData(currentBarStart, i % 2 == 0 ? 0 : 3, ObstacleType.FullHeight, barLength));
-
                 if (barDivider <= 0)
                     continue;
 #if DEBUG
@@ -211,6 +209,8 @@ namespace Beat360fyerPlugin
                     if (notesInBarBeat.Count == 0) 
                         continue;
 
+                    float currentBarBeatStart = firstBeatmapNoteTime + currentBarStart + j * dividedBarLength;
+
                     // Determine the rotation direction based on the last notes in the bar
                     NoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
                     IEnumerable<NoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
@@ -219,19 +219,23 @@ namespace Beat360fyerPlugin
                     int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = lastNotes.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
 
-                    float firstNoteTime = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
-                    float nextNoteTime = notesInBarBeat.FirstOrDefault((e) => e.time - firstNoteTime > 0.001f)?.time ?? (k < notesInBar.Count ? notesInBar[k].time : i < notes.Count ? notes[i].time : float.MaxValue);
+                    //float firstNoteTime = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
+                    //float afterFirstNoteTime = notesInBarBeat.FirstOrDefault((e) => e.time - firstNoteTime > 0.001f)?.time ?? (k < notesInBar.Count ? notesInBar[k].time : i < notes.Count ? notes[i].time : float.MaxValue);
+                    NoteData afterLastNote = (k < notesInBar.Count ? notesInBar[k] : i < notes.Count ? notes[i] : null);
 
                     // Determine amount to rotate at once
                     // TODO: Create formula out of these if statements
                     int rotationCount = 1;
-                    float timeDiff = nextNoteTime - firstNoteTime;
-                    if (notesInBarBeat.Count >= 2)
+                    if (afterLastNote != null)
                     {
-                        if (timeDiff >= barLength)
-                            rotationCount = 3;
-                        else if (timeDiff >= barLength / 4)
-                            rotationCount = 2;
+                        float timeDiff = afterLastNote.time - lastNote.time;
+                        if (notesInBarBeat.Count >= 2)
+                        {
+                            if (timeDiff >= barLength)
+                                rotationCount = 3;
+                            else if (timeDiff >= barLength / 4)
+                                rotationCount = 2;
+                        }
                     }
 
                     int rotation = 0;
@@ -289,7 +293,7 @@ namespace Beat360fyerPlugin
 
                     if (WallGenerator)
                     {
-                        float wallTime = firstBeatmapNoteTime + currentBarStart + j * dividedBarLength;
+                        float wallTime = currentBarBeatStart;
                         float wallDuration = dividedBarLength;
 
                         // Check if there is already a wall
@@ -303,29 +307,43 @@ namespace Beat360fyerPlugin
                             }
                         }
 
-                        if (generateWall)
+                        if (generateWall && afterLastNote != null)
                         {
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
                             {
-                                // Workaround for error, why tf does this work??
-                                dynamic t = Trees.Tree();
-                                t.bpm = bm.level.beatsPerMinute;
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.Top : ObstacleType.FullHeight;
-                                data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
+
+                                if (afterLastNote.lineIndex == 3 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                    wallDuration = afterLastNote.time - WallBackCut - wallTime;
+
+                                if (wallDuration > 0f)
+                                {
+                                    // Workaround for NoodleExtensions error, why tf does this work??
+                                    dynamic t = Trees.Tree();
+                                    t.bpm = bm.level.beatsPerMinute;
+                                    data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
+                                }
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
                             {
-                                // Workaround for error, why tf does this work??
-                                dynamic t = Trees.Tree();
-                                t.bpm = bm.level.beatsPerMinute;
                                 ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.Top : ObstacleType.FullHeight;
-                                data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
+
+                                if (afterLastNote.lineIndex == 0 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                    wallDuration = afterLastNote.time - WallBackCut - wallTime;
+
+                                if (wallDuration > 0f)
+                                {
+                                    // Workaround for NoodleExtensions error, why tf does this work??
+                                    dynamic t = Trees.Tree();
+                                    t.bpm = bm.level.beatsPerMinute;
+                                    data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
+                                }
                             }
                         }
                     }
 
 #if DEBUG
-                    Plugin.Log.Info($"[{firstNoteTime}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},lastNotes={lastNotes.Count()},rotationTime={lastNote.time + 0.01f},nextNoteTime={nextNoteTime},rotationCount={rotationCount})");
+                    Plugin.Log.Info($"[{currentBarBeatStart}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},lastNotes={lastNotes.Count()},rotationTime={lastNote.time + 0.01f},afterLastNote={afterLastNote?.time},rotationCount={rotationCount})");
 #endif
                 }
 
@@ -345,6 +363,7 @@ namespace Beat360fyerPlugin
                 {
                     if (ob.duration <= 0f)
                         break;
+
                     bool noCutMargin = false;
                     if (ob.customData is ExpandoObject && ob.customData != null)
                     {
