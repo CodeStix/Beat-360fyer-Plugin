@@ -41,8 +41,13 @@ namespace Beat360fyerPlugin.Patches
 
                     if (startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
                     {
-                        gen.BottleneckRotations = 2;
-                        gen.LimitRotations = 3;
+                        gen.LimitRotations = Config.Instance.LimitRotations90;
+                        gen.BottleneckRotations = Config.Instance.LimitRotations90 / 2 + 1;
+                    }
+                    else if (startingGameModeName == GameModeHelper.GENERATED_360DEGREE_MODE)
+                    {
+                        gen.LimitRotations = Config.Instance.LimitRotations360;
+                        gen.BottleneckRotations = Config.Instance.LimitRotations360 / 2 + 1;
                     }
 
                     gen.Generate(difficultyBeatmap);

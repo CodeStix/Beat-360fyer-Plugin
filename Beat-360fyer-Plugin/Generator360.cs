@@ -23,7 +23,7 @@ namespace Beat360fyerPlugin
         /// <summary>
         /// The amount of rotations before preferring the other direction (24 is one full rotation)
         /// </summary>
-        public int BottleneckRotations { get; set; } = 16;
+        public int BottleneckRotations { get; set; } = 14;
         /// <summary>
         /// Enable the spin effect when no notes are coming.
         /// </summary>

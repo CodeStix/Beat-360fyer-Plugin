@@ -12,7 +12,9 @@ namespace Beat360fyerPlugin
         public virtual bool ShowGenerated360 { get; set; } = true;
         public virtual bool ShowGenerated90 { get; set; } = true;
         public virtual bool EnableWallGenerator { get; set; } = true;
-        
+        public virtual int LimitRotations360 { get; set; } = 28;
+        public virtual int LimitRotations90 { get; set; } = 3;
+
 
         /// <summary>
         /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).
