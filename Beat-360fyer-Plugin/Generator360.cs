@@ -381,7 +381,7 @@ namespace Beat360fyerPlugin
                         ob.UpdateDuration(0f);
                     }
                     // If moved in direction of wall
-                    else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
+                    else if (isCustomWall || (ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
                         int cutMultiplier = Math.Abs(cutAmount);
                         if (cutTime >= ob.time - frontCut && cutTime < ob.time + ob.duration + backCut * cutMultiplier)
