@@ -48,6 +48,10 @@ namespace Beat360fyerPlugin
         /// True if you want to generate walls, walls are cool in 360 mode
         /// </summary>
         public bool WallGenerator { get; set; } = false;
+        /// <summary>
+        /// True if you only want to keep notes of one color.
+        /// </summary>
+        public bool OnlyOneSaber { get; set; } = false;
         
 
         private static int Floor(float f)
@@ -290,6 +294,24 @@ namespace Beat360fyerPlugin
 
                     // Finally rotate
                     Rotate(lastNote.time + 0.01f, rotation);
+
+                    if (OnlyOneSaber)
+                    {
+                        foreach(CustomNoteData nd in notesInBarBeat)
+                        {
+                            if (nd.colorType == (rotation > 0 ? ColorType.ColorA : ColorType.ColorB))
+                            {
+                                // Note will be removed later
+                                nd.MoveTime(0f);
+                            }
+                            else
+                            {
+                                // Switch all notes to ColorA
+                                if (nd.colorType == ColorType.ColorB)
+                                    nd.SwitchNoteColorType();
+                            }
+                        }
+                    }
 
                     // Generate wall
                     if (WallGenerator && !containsCustomWalls)

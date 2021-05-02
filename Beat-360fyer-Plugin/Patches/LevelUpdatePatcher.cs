@@ -38,6 +38,7 @@ namespace Beat360fyerPlugin.Patches
                     generated.Add(difficultyBeatmap);
                     Generator360 gen = new Generator360();
                     gen.WallGenerator = Config.Instance.EnableWallGenerator;
+                    gen.OnlyOneSaber = Config.Instance.OnlyOneSaber;
 
                     if (startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
                     {

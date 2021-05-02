@@ -15,6 +15,7 @@ namespace Beat360fyerPlugin
         public virtual int LimitRotations360 { get; set; } = 28;
         public virtual int LimitRotations90 { get; set; } = 2;
         public virtual string BasedOn { get; set; } = "Standard"; // Can be Standard,OneSaber,NoArrows
+        public virtual bool OnlyOneSaber { get; set; } = false;
 
 
         /// <summary>
