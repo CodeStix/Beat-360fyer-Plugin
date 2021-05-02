@@ -67,8 +67,6 @@ namespace Beat360fyerPlugin.Patches
     {
         static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData, bool showPlayerStats)
         {
-            Plugin.Log.Info($"Available basedOn: {string.Join(",",level.beatmapLevelData.difficultyBeatmapSets.Select((e) => e.beatmapCharacteristic.serializedName))}");
-
             List<BeatmapCharacteristicSO> toGenerate = new List<BeatmapCharacteristicSO>();
             if (Config.Instance.ShowGenerated360)
                 toGenerate.Add(GameModeHelper.GetGenerated360GameMode());
@@ -114,59 +112,6 @@ namespace Beat360fyerPlugin.Patches
             }
         }
     }
-
-    /*[HarmonyPatch(typeof(LevelCollectionViewController))]
-    [HarmonyPatch("HandleLevelCollectionTableViewDidSelectLevel", MethodType.Normal)]
-    class LevelSelectPatcher
-    {
-        public const string GENERATED_GAME_MODE = "Generated360Degree";
-
-        static void Prefix(LevelCollectionTableView tableView, IPreviewBeatmapLevel level) 
-        {
-            
-        }
-    }*/
-
-    /*[HarmonyPatch(typeof(StandardLevelDetailView))]
-    [HarmonyPatch("RefreshContent", MethodType.Normal)]
-    public class LevelUpdatePatcher
-    {
-        static void Prefix(StandardLevelDetailView __instance, ref IBeatmapLevel ____level, ref IDifficultyBeatmap ____selectedDifficultyBeatmap)
-        {
-            Plugin.Log.Info("[RefreshContent] refresh " + ____level.previewDifficultyBeatmapSets.Length + " , " + ____level.beatmapLevelData.difficultyBeatmapSets.Length);
-            Plugin.Log.Info("[RefreshContent] type2 " + ____level.GetType().FullName);
-
-            //if (!FieldHelper.Set(____level.beatmapLevelData, "_difficultyBeatmapSets", ____level.beatmapLevelData.difficultyBeatmapSets.AddItem()))
-            //{
-            //    Plugin.Log.Info("cleared");
-            //}
-
-            Plugin.Log.Info("[RefreshContent] song " + (____level?.songName ?? "null"));
-
-            //__instance.actionButtonText = ____level.songName;
-        }
-    }*/
-
-    /*[HarmonyPatch(typeof(SinglePlayerLevelSelectionFlowCoordinator))]
-    [HarmonyPatch("StartLevel")]
-    class PlayButtonPatcher
-    {
-        static void Prefix(Action beforeSceneSwitchCallback, bool practice, ref LevelSelectionNavigationController ___levelSelectionNavigationController)
-        {
-            IDifficultyBeatmap bm = ___levelSelectionNavigationController.selectedDifficultyBeatmap;
-
-            Plugin.Log.Info("[StartLevel] starting level: " + bm.SerializedName());
-
-            if (bm.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName == GameModeHelper.GENERATED_360DEGREE_MODE)
-            {
-                Plugin.Log.Info("[StartLevel] starting generated 360");
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(1f, BeatmapEventType.Event15, 1));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(2f, BeatmapEventType.Event15, 2));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(3f, BeatmapEventType.Event15, 3));
-                bm.beatmapData.AddBeatmapEventData(new BeatmapEventData(4f, BeatmapEventType.Event15, 4));
-            }
-        }
-    }*/
 }
 
 
