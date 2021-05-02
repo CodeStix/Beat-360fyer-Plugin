@@ -22,18 +22,28 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
 
 ```js
 {
-  // True if you want to enable 360 degree mode generation (default = true)
   "ShowGenerated360": true,
-  // True if you want to enable 90 degree mode generation (default = true)
   "ShowGenerated90": true,
-  // Set to false to disable wall generation (default = true)
   "EnableWallGenerator": true,
-  // The max amount of rotation steps to the left/right in 360 degree mode
   "LimitRotations360": 28,
-  // The max amount of rotation steps to the left/right in 90 degree mode
-  "LimitRotations90": 3
+  "LimitRotations90": 2,
+  "BasedOn": "Standard",
+  "OnlyOneSaber": false
 }
 ```
+|Option|Description|
+|---|---|
+|`ShowGenerated360`| `true` if you want to enable 360 degree mode generation (default = `true`)|
+|`ShowGenerated90`| `true` if you want to enable 90 degree mode generation (default = `true`)|
+|`EnableWallGenerator`| Set to `false` to disable wall generation (default = `true`). Walls are not generated for NoodleExtension levels by default.|
+|`LimitRotations360`| The max amount of rotation steps to the left or right in 360 degree mode. (default = `28`)|
+|`LimitRotations90`|The max amount of rotation steps to the left or right in 90 degree mode. (default = `2`)|
+|`BasedOn`|Which game mode to generate the 360 mode from, can be `"Standard"` (default), `"OneSaber"` or `"NoArrows"`|
+|`OnlyOneSaber`|`true` if you want to only keep one color during generation, this allows you to play `OneSaber` in 360 degree on any level, also the ones that don't have a OneSaber gamemode. (default = `false`, caution: experimental)|
+
+**Not working? Config not doing anything?** Make sure you saved the file in the original location, and make sure you didn't place a comma after the last option (see example config above).
+
+
 ## How to build
 
 To test and build this project locally, do the following:
