@@ -60,6 +60,8 @@ namespace Beat360fyerPlugin
         {
             ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
 
+            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && ((IDictionary<string, object>)d.customData).ContainsKey("_position")) > 12;
+
             // Amount of rotation events emitted
             int eventCount = 0;
             // Current rotation
@@ -84,7 +86,7 @@ namespace Beat360fyerPlugin
                 {
                     if (totalRotation + amount > LimitRotations)
                         amount = Math.Min(amount, Math.Max(0, LimitRotations - totalRotation));
-                    else if (totalRotation - amount < -LimitRotations)
+                    else if (totalRotation + amount < -LimitRotations)
                         amount = Math.Max(amount, Math.Min(0, -(LimitRotations + totalRotation)));
                     if (amount == 0)
                         return;
@@ -289,7 +291,7 @@ namespace Beat360fyerPlugin
                     // Finally rotate
                     Rotate(lastNote.time + 0.01f, rotation);
 
-                    if (WallGenerator)
+                    if (WallGenerator && !containsCustomWalls)
                     {
                         float wallTime = currentBarBeatStart;
                         float wallDuration = dividedBarLength;
@@ -426,6 +428,8 @@ namespace Beat360fyerPlugin
             {
                 Plugin.Log.Error($"Could not replace beatmap");
             }
+
+            Plugin.Log.Info($"Contains custom walls: {containsCustomWalls}");
         }
 
     }
