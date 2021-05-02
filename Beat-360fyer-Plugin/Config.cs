@@ -13,7 +13,7 @@ namespace Beat360fyerPlugin
         public virtual bool ShowGenerated90 { get; set; } = true;
         public virtual bool EnableWallGenerator { get; set; } = true;
         public virtual int LimitRotations360 { get; set; } = 28;
-        public virtual int LimitRotations90 { get; set; } = 3;
+        public virtual int LimitRotations90 { get; set; } = 2;
 
 
         /// <summary>

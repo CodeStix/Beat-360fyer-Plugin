@@ -82,9 +82,9 @@ namespace Beat360fyerPlugin
 
                 if (enableLimit)
                 {
-                    if (totalRotation > 0 && totalRotation + amount > LimitRotations)
+                    if (totalRotation + amount > LimitRotations)
                         amount = Math.Min(amount, Math.Max(0, LimitRotations - totalRotation));
-                    else if (totalRotation < 0 && totalRotation - amount < -LimitRotations)
+                    else if (totalRotation - amount < -LimitRotations)
                         amount = Math.Max(amount, Math.Min(0, -(LimitRotations + totalRotation)));
                     if (amount == 0)
                         return;
@@ -219,8 +219,6 @@ namespace Beat360fyerPlugin
                     int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
                     int rightCount = lastNotes.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
 
-                    //float firstNoteTime = notesInBarBeat[0].time; // ~= firstNoteTime + currentBarStart + j * dividedBarLength;
-                    //float afterFirstNoteTime = notesInBarBeat.FirstOrDefault((e) => e.time - firstNoteTime > 0.001f)?.time ?? (k < notesInBar.Count ? notesInBar[k].time : i < notes.Count ? notes[i].time : float.MaxValue);
                     NoteData afterLastNote = (k < notesInBar.Count ? notesInBar[k] : i < notes.Count ? notes[i] : null);
 
                     // Determine amount to rotate at once
