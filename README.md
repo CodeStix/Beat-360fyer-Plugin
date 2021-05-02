@@ -41,7 +41,7 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
 |`BasedOn`|Which game mode to generate the 360 mode from, can be `"Standard"` (default), `"OneSaber"` or `"NoArrows"`|
 |`OnlyOneSaber`|`true` if you want to only keep one color during generation, this allows you to play `OneSaber` in 360 degree on any level, also the ones that don't have a OneSaber gamemode. (default = `false`, caution: experimental)|
 
-**Not working? Config not doing anything?** Make sure you saved the file in the original location, and make sure you didn't place a comma after the last option (see example config above).
+**Not working? Config not doing anything?** Make sure you saved the file in the original location, and make sure you didn't place a comma after the last option (see working example config above).
 
 
 ## How to build
