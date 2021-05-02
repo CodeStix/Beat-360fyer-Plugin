@@ -27,7 +27,11 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
   // True if you want to enable 90 degree mode generation (default = true)
   "ShowGenerated90": true,
   // Set to false to disable wall generation (default = true)
-  "EnableWallGenerator": true
+  "EnableWallGenerator": true,
+  // The max amount of rotation steps to the left/right in 360 degree mode
+  "LimitRotations360": 28,
+  // The max amount of rotation steps to the left/right in 90 degree mode
+  "LimitRotations90": 3
 }
 ```
 ## How to build
