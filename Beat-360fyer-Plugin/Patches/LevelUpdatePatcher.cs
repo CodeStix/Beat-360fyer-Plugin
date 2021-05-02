@@ -66,6 +66,8 @@ namespace Beat360fyerPlugin.Patches
     {
         static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData, bool showPlayerStats)
         {
+            Plugin.Log.Info($"Available basedOn: {string.Join(",",level.beatmapLevelData.difficultyBeatmapSets.Select((e) => e.beatmapCharacteristic.serializedName))}");
+
             List<BeatmapCharacteristicSO> toGenerate = new List<BeatmapCharacteristicSO>();
             if (Config.Instance.ShowGenerated360)
                 toGenerate.Add(GameModeHelper.GetGenerated360GameMode());
@@ -83,15 +85,15 @@ namespace Beat360fyerPlugin.Patches
                     continue;
                 }
 
-                IDifficultyBeatmapSet standard = level.beatmapLevelData.difficultyBeatmapSets.FirstOrDefault((e) => e.beatmapCharacteristic.serializedName == "Standard");
-                if (standard == null)
+                IDifficultyBeatmapSet basedOnGameMode = level.beatmapLevelData.difficultyBeatmapSets.FirstOrDefault((e) => e.beatmapCharacteristic.serializedName == Config.Instance.BasedOn);
+                if (basedOnGameMode == null)
                 {
                     // Level does not have a standard mode to base its 360 mode on
                     continue;
                 }
 
                 CustomDifficultyBeatmapSet customSet = new CustomDifficultyBeatmapSet(customGameMode);
-                CustomDifficultyBeatmap[] difficulties = standard.difficultyBeatmaps.Select((e) => new CustomDifficultyBeatmap(e.level, customSet, e.difficulty, e.difficultyRank, e.noteJumpMovementSpeed, e.noteJumpStartBeatOffset, e.beatmapData.GetCopy())).ToArray();
+                CustomDifficultyBeatmap[] difficulties = basedOnGameMode.difficultyBeatmaps.Select((e) => new CustomDifficultyBeatmap(e.level, customSet, e.difficulty, e.difficultyRank, e.noteJumpMovementSpeed, e.noteJumpStartBeatOffset, e.beatmapData.GetCopy())).ToArray();
                 customSet.SetCustomDifficultyBeatmaps(difficulties);
                 sets.Add(customSet);
             }

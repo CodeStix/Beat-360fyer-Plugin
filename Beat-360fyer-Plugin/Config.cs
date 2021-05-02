@@ -14,6 +14,7 @@ namespace Beat360fyerPlugin
         public virtual bool EnableWallGenerator { get; set; } = true;
         public virtual int LimitRotations360 { get; set; } = 28;
         public virtual int LimitRotations90 { get; set; } = 2;
+        public virtual string BasedOn { get; set; } = "Standard"; // Can be Standard,OneSaber,NoArrows
 
 
         /// <summary>
