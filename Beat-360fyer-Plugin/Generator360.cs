@@ -60,7 +60,7 @@ namespace Beat360fyerPlugin
         {
             ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
 
-            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && ((IDictionary<string, object>)d.customData).ContainsKey("_position")) > 12;
+            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && d.customData is ExpandoObject && (((IDictionary<string, object>)d.customData)?.ContainsKey("_position") ?? false)) > 12;
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -364,15 +364,18 @@ namespace Beat360fyerPlugin
                     if (ob.duration <= 0f)
                         break;
 
-                    bool noCutMargin = false;
+                    // Do not cut a margin around the wall if the wall is at a custom position
+                    bool isCustomWall = false;
                     if (ob.customData is ExpandoObject && ob.customData != null)
                     {
                         IDictionary<string, object> customDataDict = (IDictionary<string, object>)ob.customData;
-                        noCutMargin = customDataDict.ContainsKey("_position");
+                        isCustomWall = customDataDict.ContainsKey("_position");
                     }
+                    float frontCut = isCustomWall ? 0f : WallFrontCut;
+                    float backCut = isCustomWall ? 0f : WallBackCut;
 
                     // If wall is uncomfortable for 360Degree mode, remove it
-                    if (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1))
+                    if (!isCustomWall && (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1)))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
                         ob.UpdateDuration(0f);
@@ -381,8 +384,6 @@ namespace Beat360fyerPlugin
                     else if ((ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
                         int cutMultiplier = Math.Abs(cutAmount);
-                        float frontCut = noCutMargin ? 0f : WallFrontCut;
-                        float backCut = noCutMargin ? 0f : WallBackCut;
                         if (cutTime >= ob.time - frontCut && cutTime < ob.time + ob.duration + backCut * cutMultiplier)
                         {
                             float firstPartTime = ob.time;
