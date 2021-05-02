@@ -291,6 +291,7 @@ namespace Beat360fyerPlugin
                     // Finally rotate
                     Rotate(lastNote.time + 0.01f, rotation);
 
+                    // Generate wall
                     if (WallGenerator && !containsCustomWalls)
                     {
                         float wallTime = currentBarBeatStart;
@@ -418,6 +419,22 @@ namespace Beat360fyerPlugin
                             Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
 #endif
                             
+                        }
+                    }
+                }
+            }
+
+            // Remove bombs
+            foreach(CustomNoteData nd in data.objects.OfType<CustomNoteData>().Where((e) => e.cutDirection == NoteCutDirection.None))
+            {
+                foreach ((float cutTime, int cutAmount) in wallCutMoments)
+                {
+                    if (nd.time >= cutTime - WallFrontCut && nd.time < cutTime + WallBackCut)
+                    {
+                        if ((nd.lineIndex <= 2 && cutAmount < 0) || (nd.lineIndex >= 1 && cutAmount > 0))
+                        {
+                            // Will be removed later
+                            nd.MoveTime(0f);
                         }
                     }
                 }

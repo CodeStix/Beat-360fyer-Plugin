@@ -27,7 +27,7 @@ namespace Beat360fyerPlugin
         {
             CustomBeatmapData bm = new CustomBeatmapData(from.numberOfLines);
             foreach (BeatmapObjectData o in objects.OrderBy((e) => e.time))
-                if (!(o is ObstacleData ob && ob.duration == 0f))
+                if (!(o is ObstacleData ob && ob.duration == 0f) && o.time > 0f)
                     bm.AddBeatmapObjectData(o);
             foreach (BeatmapEventData o in events.OrderBy((e) => e.time))
                 bm.AddBeatmapEventData(o);
