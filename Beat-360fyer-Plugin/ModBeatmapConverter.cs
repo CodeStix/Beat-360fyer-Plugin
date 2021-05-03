@@ -32,7 +32,7 @@ namespace Beat360fyerPlugin
                 dynamic t = Trees.Tree();
                 // Workaround for NoodleExtensions error, why tf does this work??
                 t.bpm = bm.level.beatsPerMinute;
-                return bm;
+                return t;
             }
             else
             {
@@ -68,14 +68,17 @@ namespace Beat360fyerPlugin
             CustomBeatmapData original = (CustomBeatmapData)originalBeatmap.beatmapData;
 
             CustomBeatmapData bm = new CustomBeatmapData(from.NumberOfLines);
-            foreach(ModBeatmapEventData ev in from.events)
+            foreach (ModBeatmapEventData ev in from.events)
             {
                 bm.AddBeatmapEventData(new CustomBeatmapEventData(ev.time, (BeatmapEventType)ev.type, ev.value, ev.customData));
             }
-            foreach(ModBeatmapObjectData d in from.objects)
+            foreach (ModBeatmapObjectData d in from.objects)
             {
                 if (d is ModNoteData nd)
-                    bm.AddBeatmapObjectData((BeatmapObjectData)typeof(CustomNoteData).GetType().GetMethod("CreateBasicNoteData", BindingFlags.NonPublic).Invoke(null, new object[] { nd.time, nd.lineIndex, (NoteLineLayer)nd.noteLineLayer, (ColorType)nd.colorType, (NoteCutDirection)nd.cutDirection, CreateDynamicCustomData(nd.customData, originalBeatmap) }));
+                {
+                    MethodInfo createCustomNoteMethod = typeof(CustomNoteData).GetMethod("CreateBasicNoteData", BindingFlags.NonPublic | BindingFlags.Static);
+                    bm.AddBeatmapObjectData((BeatmapObjectData)createCustomNoteMethod.Invoke(null, new object[] { nd.time, nd.lineIndex, (NoteLineLayer)nd.noteLineLayer, (ColorType)nd.colorType, (NoteCutDirection)nd.cutDirection, CreateDynamicCustomData(nd.customData, originalBeatmap) }));
+                }
                 else if (d is ModObstacleData ob)
                     bm.AddBeatmapObjectData(new CustomObstacleData(ob.time, ob.lineIndex, (ObstacleType)ob.obstacleType, ob.duration, ob.width, CreateDynamicCustomData(ob.customData, originalBeatmap)));
                 else if (d is ModWaypointData wd)

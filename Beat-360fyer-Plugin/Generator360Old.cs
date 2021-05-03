@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Beat360fyerPlugin
 {
-    public class Generator360
+    public class Generator360Old
     {
         /// <summary>
         /// The preferred bar duration in seconds. The generator will loop the song in bars. 
