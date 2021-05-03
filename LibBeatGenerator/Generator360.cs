@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace LibBeatGenerator
 {
     public class Generator360
     {
+        public event Action<string> Logger;
+
         /// <summary>
         /// The preferred bar duration in seconds. The generator will loop the song in bars. 
         /// This is called 'preferred' because this value will change depending on a song's bpm (will be aligned around this value).
@@ -46,18 +51,15 @@ namespace LibBeatGenerator
         /// </summary>
         public bool OnlyOneSaber { get; set; } = false;
 
-
         private static int Floor(float f)
         {
             int i = (int)f;
             return f - i >= 0.999f ? i + 1 : i;
         }
 
-        public void Generate(IDifficultyBeatmap bm)
+        public void Generate(ModBeatmapData data)
         {
-            ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
-
-            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && d.customData is ExpandoObject && (((IDictionary<string, object>)d.customData)?.ContainsKey("_position") ?? false)) > 12;
+            bool containsCustomWalls = data.objects.Count((e) => e is ModObstacleData d && (d.customData?.ContainsKey("_position") ?? false)) > 12;
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -95,10 +97,10 @@ namespace LibBeatGenerator
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount, Trees.Tree()));
+                data.events.Add(new ModBeatmapEventData(time, ModBeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
 
-            float beatDuration = 60f / bm.level.beatsPerMinute;
+            float beatDuration = 60f / data.BeatsPerMinute;
 
             // Align PreferredBarDuration to beatDuration
             float barLength = beatDuration;
@@ -107,15 +109,15 @@ namespace LibBeatGenerator
             while (barLength < PreferredBarDuration * 0.75f)
                 barLength *= 2f;
 
-            List<NoteData> notes = data.objects.OfType<NoteData>().ToList();
-            List<NoteData> notesInBar = new List<NoteData>();
-            List<NoteData> notesInBarBeat = new List<NoteData>();
+            List<ModNoteData> notes = data.objects.OfType<ModNoteData>().ToList();
+            List<ModNoteData> notesInBar = new List<ModNoteData>();
+            List<ModNoteData> notesInBarBeat = new List<ModNoteData>();
 
             // Align bars to first note, the first note (almost always) identifies the start of the first bar
             float firstBeatmapNoteTime = notes[0].time;
 
 #if DEBUG
-            Plugin.Log.Info($"Setup bpm={bm.level.beatsPerMinute} beatDuration={beatDuration} barLength={barLength} firstNoteTime={firstBeatmapNoteTime}");
+            Logger($"Setup bpm={data.BeatsPerMinute} beatDuration={beatDuration} barLength={barLength} firstNoteTime={firstBeatmapNoteTime}");
 #endif
 
             for (int i = 0; i < notes.Count;)
@@ -127,7 +129,7 @@ namespace LibBeatGenerator
                 for (; i < notes.Count && notes[i].time - firstBeatmapNoteTime < currentBarEnd; i++)
                 {
                     // If isn't bomb
-                    if (notes[i].cutDirection != NoteCutDirection.None)
+                    if (notes[i].cutDirection != ModNoteCutDirection.None)
                         notesInBar.Add(notes[i]);
                 }
 
@@ -137,10 +139,10 @@ namespace LibBeatGenerator
                 if (EnableSpin && notesInBar.Count >= 2 && currentBarStart - previousSpinTime > SpinCooldown && notesInBar.All((e) => Math.Abs(e.time - notesInBar[0].time) < 0.001f))
                 {
 #if DEBUG
-                    Plugin.Log.Info($"[Generator] Spin effect at {firstBeatmapNoteTime + currentBarStart}");
+                    Logger($"Spin effect at {firstBeatmapNoteTime + currentBarStart}");
 #endif
-                    int leftCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
-                    int rightCount = notesInBar.Count((e) => e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+                    int leftCount = notesInBar.Count((e) => e.cutDirection == ModNoteCutDirection.Left || e.cutDirection == ModNoteCutDirection.UpLeft || e.cutDirection == ModNoteCutDirection.DownLeft);
+                    int rightCount = notesInBar.Count((e) => e.cutDirection == ModNoteCutDirection.Right || e.cutDirection == ModNoteCutDirection.UpRight || e.cutDirection == ModNoteCutDirection.DownRight);
 
                     int spinDirection;
                     if (leftCount == rightCount)
@@ -211,14 +213,14 @@ namespace LibBeatGenerator
                     float currentBarBeatStart = firstBeatmapNoteTime + currentBarStart + j * dividedBarLength;
 
                     // Determine the rotation direction based on the last notes in the bar
-                    NoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
-                    IEnumerable<NoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
+                    ModNoteData lastNote = notesInBarBeat[notesInBarBeat.Count - 1];
+                    IEnumerable<ModNoteData> lastNotes = notesInBarBeat.Where((e) => Math.Abs(e.time - lastNote.time) < 0.005f);
 
                     // Amount of notes pointing to the left/right
-                    int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == NoteCutDirection.Left || e.cutDirection == NoteCutDirection.UpLeft || e.cutDirection == NoteCutDirection.DownLeft);
-                    int rightCount = lastNotes.Count((e) => e.lineIndex >= 2 || e.cutDirection == NoteCutDirection.Right || e.cutDirection == NoteCutDirection.UpRight || e.cutDirection == NoteCutDirection.DownRight);
+                    int leftCount = lastNotes.Count((e) => e.lineIndex <= 1 || e.cutDirection == ModNoteCutDirection.Left || e.cutDirection == ModNoteCutDirection.UpLeft || e.cutDirection == ModNoteCutDirection.DownLeft);
+                    int rightCount = lastNotes.Count((e) => e.lineIndex >= 2 || e.cutDirection == ModNoteCutDirection.Right || e.cutDirection == ModNoteCutDirection.UpRight || e.cutDirection == ModNoteCutDirection.DownRight);
 
-                    NoteData afterLastNote = (k < notesInBar.Count ? notesInBar[k] : i < notes.Count ? notes[i] : null);
+                    ModNoteData afterLastNote = (k < notesInBar.Count ? notesInBar[k] : i < notes.Count ? notes[i] : null);
 
                     // Determine amount to rotate at once
                     // TODO: Create formula out of these if statements
@@ -290,19 +292,19 @@ namespace LibBeatGenerator
 
                     if (OnlyOneSaber)
                     {
-                        foreach (CustomNoteData nd in notesInBarBeat)
+                        foreach (ModNoteData nd in notesInBarBeat)
                         {
-                            if (nd.colorType == (rotation > 0 ? ColorType.ColorA : ColorType.ColorB))
+                            if (nd.colorType == (rotation > 0 ? ModColorType.ColorA : ModColorType.ColorB))
                             {
                                 // Note will be removed later
-                                nd.MoveTime(0f);
+                                nd.time = 0f;
                             }
                             else
                             {
                                 // Switch all notes to ColorA
-                                if (nd.colorType == ColorType.ColorB)
+                                if (nd.colorType == ModColorType.ColorB)
                                 {
-                                    nd.MirrorLineIndex(bm.beatmapData.numberOfLines);
+                                    nd.MirrorLineIndex(data.NumberOfLines);
                                 }
                             }
                         }
@@ -316,7 +318,7 @@ namespace LibBeatGenerator
 
                         // Check if there is already a wall
                         bool generateWall = true;
-                        foreach (ObstacleData obs in data.objects.OfType<ObstacleData>())
+                        foreach (ModObstacleData obs in data.objects.OfType<ModObstacleData>())
                         {
                             if (obs.time + obs.duration >= wallTime && obs.time < wallTime + wallDuration)
                             {
@@ -329,54 +331,48 @@ namespace LibBeatGenerator
                         {
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
                             {
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.Top : ObstacleType.FullHeight;
+                                ModObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ModObstacleType.Top : ModObstacleType.FullHeight;
 
-                                if (afterLastNote.lineIndex == 3 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                if (afterLastNote.lineIndex == 3 && !(type == ModObstacleType.Top && afterLastNote.noteLineLayer == ModNoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
                                 if (wallDuration > 0f)
                                 {
-                                    // Workaround for NoodleExtensions error, why tf does this work??
-                                    dynamic t = Trees.Tree();
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
+                                    data.objects.Add(new ModObstacleData(wallTime, 3, type, wallDuration, 1));
                                 }
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
                             {
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.Top : ObstacleType.FullHeight;
+                                ModObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ModObstacleType.Top : ModObstacleType.FullHeight;
 
-                                if (afterLastNote.lineIndex == 0 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                if (afterLastNote.lineIndex == 0 && !(type == ModObstacleType.Top && afterLastNote.noteLineLayer == ModNoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
                                 if (wallDuration > 0f)
                                 {
-                                    // Workaround for NoodleExtensions error, why tf does this work??
-                                    dynamic t = Trees.Tree();
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
+                                    data.objects.Add(new ModObstacleData(wallTime, 0, type, wallDuration, 1));
                                 }
                             }
                         }
                     }
 
 #if DEBUG
-                    Plugin.Log.Info($"[{currentBarBeatStart}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},lastNotes={lastNotes.Count()},rotationTime={lastNote.time + 0.01f},afterLastNote={afterLastNote?.time},rotationCount={rotationCount})");
+                    Logger($"[{currentBarBeatStart}] Rotate {rotation} (c={notesInBarBeat.Count},lc={leftCount},rc={rightCount},lastNotes={lastNotes.Count()},rotationTime={lastNote.time + 0.01f},afterLastNote={afterLastNote?.time},rotationCount={rotationCount})");
 #endif
                 }
 
 
 #if DEBUG
-                Plugin.Log.Info($"[{currentBarStart + firstBeatmapNoteTime}({(currentBarStart + firstBeatmapNoteTime) / beatDuration}) -> {currentBarEnd + firstBeatmapNoteTime}({(currentBarEnd + firstBeatmapNoteTime) / beatDuration})] count={notesInBar.Count} segments={builder} barDiviver={barDivider}");
+                Logger($"[{currentBarStart + firstBeatmapNoteTime}({(currentBarStart + firstBeatmapNoteTime) / beatDuration}) -> {currentBarEnd + firstBeatmapNoteTime}({(currentBarEnd + firstBeatmapNoteTime) / beatDuration})] count={notesInBar.Count} segments={builder} barDiviver={barDivider}");
 #endif
             }
 
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            Queue<CustomObstacleData> obstacles = new Queue<CustomObstacleData>(data.objects.OfType<CustomObstacleData>());
+            Queue<ModObstacleData> obstacles = new Queue<ModObstacleData>(data.objects.OfType<ModObstacleData>());
             while (obstacles.Count > 0)
             {
-                CustomObstacleData ob = obstacles.Dequeue();
+                ModObstacleData ob = obstacles.Dequeue();
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
                     if (ob.duration <= 0f)
@@ -384,10 +380,9 @@ namespace LibBeatGenerator
 
                     // Do not cut a margin around the wall if the wall is at a custom position
                     bool isCustomWall = false;
-                    if (ob.customData is ExpandoObject && ob.customData != null)
+                    if (ob.customData != null)
                     {
-                        IDictionary<string, object> customDataDict = (IDictionary<string, object>)ob.customData;
-                        isCustomWall = customDataDict.ContainsKey("_position");
+                        isCustomWall = ob.customData.ContainsKey("_position");
                     }
                     float frontCut = isCustomWall ? 0f : WallFrontCut;
                     float backCut = isCustomWall ? 0f : WallBackCut;
@@ -396,7 +391,7 @@ namespace LibBeatGenerator
                     if (!isCustomWall && (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1)))
                     {
                         // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
-                        ob.UpdateDuration(0f);
+                        ob.duration = 0f;
                     }
                     // If moved in direction of wall
                     else if (isCustomWall || (ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -411,29 +406,27 @@ namespace LibBeatGenerator
 
                             if (secondPartDuration > 0f && firstPartDuration <= 0.01f)
                             {
-                                ob.MoveTime(secondPartTime);
-                                ob.UpdateDuration(secondPartDuration);
+                                ob.time = secondPartTime;
+                                ob.duration = secondPartDuration;
                             }
                             else
                             {
                                 // Split the wall in half by creating a second wall
                                 if (secondPartDuration > 0.01f)
                                 {
-                                    dynamic t = Trees.Copy(ob.customData);
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, t);
+                                    ModObstacleData secondPart = new ModObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, ob.customData);
                                     data.objects.Add(secondPart);
                                     obstacles.Enqueue(secondPart);
                                 }
 
                                 // Modify first half of wall
-                                ob.MoveTime(firstPartTime);
-                                ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
+                                ob.time = firstPartTime;
+                                ob.duration = Math.Max(firstPartDuration, 0f);
                             }
 
 
 #if DEBUG
-                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
+                            Logger($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
 #endif
 
                         }
@@ -442,7 +435,7 @@ namespace LibBeatGenerator
             }
 
             // Remove bombs
-            foreach (CustomNoteData nd in data.objects.OfType<CustomNoteData>().Where((e) => e.cutDirection == NoteCutDirection.None))
+            foreach (ModNoteData nd in data.objects.OfType<ModNoteData>().Where((e) => e.cutDirection == ModNoteCutDirection.None))
             {
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
@@ -451,20 +444,18 @@ namespace LibBeatGenerator
                         if ((nd.lineIndex <= 2 && cutAmount < 0) || (nd.lineIndex >= 1 && cutAmount > 0))
                         {
                             // Will be removed later
-                            nd.MoveTime(0f);
+                            nd.time = 0f;
                         }
                     }
                 }
             }
+#if DEBUG
+            Logger($"Sorting...");
+#endif
 
-            Plugin.Log.Info($"Emitted {eventCount} rotation events");
+            data.SortAndRemove();
 
-            if (!FieldHelper.Set(bm, "_beatmapData", data.ToBeatmap()))
-            {
-                Plugin.Log.Error($"Could not replace beatmap");
-            }
-
-            Plugin.Log.Info($"Contains custom walls: {containsCustomWalls}");
+            Logger($"Emitted {eventCount} rotation events");
         }
 
     }
