@@ -24,6 +24,7 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
 {
   "ShowGenerated360": true,
   "ShowGenerated90": true,
+  "AlwaysShowGenerated": false,
   "EnableWallGenerator": true,
   "LimitRotations360": 28,
   "LimitRotations90": 2,
@@ -35,6 +36,7 @@ Currently, there is no settings menu. You can tweak some settings in the `UserDa
 |---|---|
 |`ShowGenerated360`| `true` if you want to enable 360 degree mode generation (default = `true`)|
 |`ShowGenerated90`| `true` if you want to enable 90 degree mode generation (default = `true`)|
+|`AlwaysShowGenerated`| `true` if you always want to show the generated 360 gamemode, also if there is already a 360 mode available. (default = `false`)|
 |`EnableWallGenerator`| Set to `false` to disable wall generation (default = `true`). Walls are not generated for NoodleExtension levels by default.|
 |`LimitRotations360`| The max amount of rotation steps to the left or right in 360 degree mode. (default = `28`)|
 |`LimitRotations90`|The max amount of rotation steps to the left or right in 90 degree mode. (default = `2`)|
