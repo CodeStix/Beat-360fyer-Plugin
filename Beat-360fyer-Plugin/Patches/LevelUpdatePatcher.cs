@@ -21,18 +21,15 @@ namespace Beat360fyerPlugin.Patches
 
         static TransitionPatcher()
         {
+            Generator360.Logger = Plugin.Log.Info;
             generator = new Generator360();
-            generator.Logger += Plugin.Log.Info;
-
-        
-
-
         }
 
         static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ref ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
+#if DEBUG
             Plugin.Log.Info($"Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
-
+#endif
             string startingGameModeName = difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             if (startingGameModeName == GameModeHelper.GENERATED_360DEGREE_MODE || startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
             {
@@ -116,13 +113,13 @@ namespace Beat360fyerPlugin.Patches
             {
                 if (!FieldHelper.Set(data, "_difficultyBeatmapSets", sets.ToArray()))
                 {
-                    Plugin.Log.Warn("Could not set new difficulty sets");
+                    Plugin.Log.Error("Could not set new difficulty sets");
                     return;
                 }
             }
             else
             {
-                Plugin.Log.Info("Unsupported beatmapLevelData: " + (level.beatmapLevelData?.GetType().FullName ?? "null"));
+                Plugin.Log.Error("Unsupported beatmapLevelData: " + (level.beatmapLevelData?.GetType().FullName ?? "null"));
             }
         }
     }

@@ -110,8 +110,6 @@
     <Compile Include="ModBeatmapConverter.cs" />
     <Compile Include="FieldHelper.cs" />
     <Compile Include="GameModeHelper.cs" />
-    <Compile Include="Generator360Old.cs" />
-    <Compile Include="ModBeatmapDataOld.cs" />
     <Compile Include="Patches\LevelUpdatePatcher.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Config.cs" />
