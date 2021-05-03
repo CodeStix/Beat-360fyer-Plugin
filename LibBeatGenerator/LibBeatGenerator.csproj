@@ -2,9 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.0.6</Version>
+    <Version>1.1.0</Version>
     <Description>A Beat Saber plugin utility library to generate custom gamemodes on differents platforms.</Description>
     <Authors>Stijn Rogiest</Authors>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
   </PropertyGroup>
 
 </Project>

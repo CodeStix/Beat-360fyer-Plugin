@@ -3,7 +3,7 @@
   "id": "Beat360fyerPlugin",
   "name": "Beat-360fyer-Plugin",
   "author": "codestix",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "A Beat Saber plugin that lets you play every map in 360/90 degrees.",
   "gameVersion": "1.15.0",
   "dependsOn": {
