@@ -133,5 +133,11 @@
       <Version>2.0.4</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LibBeatGenerator\LibBeatGenerator.csproj">
+      <Project>{eaa35acc-dff7-4829-a957-5974de27fc2e}</Project>
+      <Name>LibBeatGenerator</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
