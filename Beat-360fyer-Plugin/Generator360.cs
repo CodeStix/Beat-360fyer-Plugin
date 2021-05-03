@@ -62,7 +62,7 @@ namespace Beat360fyerPlugin
 
         public void Generate(IDifficultyBeatmap bm)
         {
-            ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
+            ModBeatmapDataOld data = new ModBeatmapDataOld((CustomBeatmapData)bm.beatmapData);
 
             bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && d.customData is ExpandoObject && (((IDictionary<string, object>)d.customData)?.ContainsKey("_position") ?? false)) > 12;
 
