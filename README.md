@@ -18,7 +18,7 @@ The algorithm is completely deterministic and does not use random chance, it gen
 
 ## Config file
 
-Currently, there is no settings menu. You can tweak some settings in the `UserData/Beat-360fyer-Plugin.json` config file.
+Currently, there is no settings menu. You can tweak some settings in the `Beat Saber/UserData/Beat-360fyer-Plugin.json` config file. You should open this file with notepad or another text editor.
 
 ```js
 {
