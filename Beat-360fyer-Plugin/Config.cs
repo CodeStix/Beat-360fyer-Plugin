@@ -5,12 +5,12 @@ using IPA.Config.Stores;
 [assembly: InternalsVisibleTo(GeneratedStore.AssemblyVisibilityTarget)]
 namespace Beat360fyerPlugin
 {
+
     internal class Config
     {
         public static Config Instance { get; set; }
         public virtual bool ShowGenerated360 { get; set; } = true;
         public virtual bool ShowGenerated90 { get; set; } = true;
-        public virtual bool AlwaysShowGenerated { get; set; } = false;
         public virtual bool EnableWallGenerator { get; set; } = true;
         public virtual int LimitRotations360 { get; set; } = 28;
         public virtual int LimitRotations90 { get; set; } = 2;

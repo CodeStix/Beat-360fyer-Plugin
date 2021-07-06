@@ -79,9 +79,9 @@ namespace Beat360fyerPlugin.Patches
         static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData, bool showPlayerStats)
         {
             List<BeatmapCharacteristicSO> toGenerate = new List<BeatmapCharacteristicSO>();
-            if (Config.Instance.ShowGenerated360 && (Config.Instance.AlwaysShowGenerated || !level.beatmapLevelData.difficultyBeatmapSets.Any((e) => e.beatmapCharacteristic.serializedName == "360Degree")))
+            if (Config.Instance.ShowGenerated360)
                 toGenerate.Add(GameModeHelper.GetGenerated360GameMode());
-            if (Config.Instance.ShowGenerated90 && (Config.Instance.AlwaysShowGenerated || !level.beatmapLevelData.difficultyBeatmapSets.Any((e) => e.beatmapCharacteristic.serializedName == "90Degree")))
+            if (Config.Instance.ShowGenerated90)
                 toGenerate.Add(GameModeHelper.GetGenerated90GameMode());
 
             List<IDifficultyBeatmapSet> sets = new List<IDifficultyBeatmapSet>(level.beatmapLevelData.difficultyBeatmapSets);
