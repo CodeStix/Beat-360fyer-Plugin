@@ -7,7 +7,7 @@ namespace LibBeatGenerator
 {
     public class Generator360
     {
-        public static Action<string> Logger { get; set; }
+        public event Action<string> Logger;
 
         /// <summary>
         /// The preferred bar duration in seconds. The generator will loop the song in bars. 
