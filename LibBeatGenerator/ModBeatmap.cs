@@ -11,17 +11,14 @@ namespace LibBeatGenerator
         public List<ModBeatmapEventData> events = new List<ModBeatmapEventData>();
 
         public int NumberOfLines { get; }
-        public float BeatsPerMinute { get; }
 
-        public ModBeatmapData(int numberOfLines, float beatsPerMinute)
+        public ModBeatmapData(int numberOfLines)
         {
             NumberOfLines = numberOfLines;
-            BeatsPerMinute = beatsPerMinute;
         }
 
         /// <summary>
         /// Removes walls with a 0 duration, notes with time &lt;= 0 and sorts everything by time.
-        /// Call this function before converting to native type so everything is in the right order.
         /// </summary>
         public void SortAndRemove()
         {
@@ -111,87 +108,30 @@ namespace LibBeatGenerator
 
     public class ModObstacleData : ModBeatmapObjectData
     {
-        public ModObstacleType obstacleType;
+        public ModObstacleType type;
         public float duration;
-        public int width;
-        public IDictionary<string, object> customData;
 
-        public ModObstacleData(float time, int lineIndex, ModObstacleType type, float duration, int width = 1, IDictionary<string, object> customData = null) : base(time, lineIndex)
+        public ModObstacleData(float time, int lineIndex, float duration, ModObstacleType type = ModObstacleType.FullHeight) : base(time, lineIndex)
         {
-            this.obstacleType = type;
+            this.type = type;
             this.duration = duration;
-            this.width = width;
-            this.customData = customData;
         }
     }
 
-    public enum ModNoteLineLayer
-    {
-        Base,
-        Upper,
-        Top
-    }
-    
     public class ModNoteData : ModBeatmapObjectData
     {
         public ModNoteCutDirection cutDirection;
         public ModColorType colorType;
-        public ModNoteLineLayer noteLineLayer;
 
-        public ModNoteData(float time, int lineIndex, ModNoteLineLayer layer, ModNoteCutDirection cutDirection, ModColorType colorType) : base(time, lineIndex)
+        public ModNoteData(float time, int lineIndex, ModNoteCutDirection cutDirection, ModColorType colorType) : base(time, lineIndex)
         {
             this.cutDirection = cutDirection;
-            this.noteLineLayer = layer;
             this.colorType = colorType;
         }
 
-        public static ModNoteData CreateBomb(float time, int lineIndex, ModNoteLineLayer layer)
+        public static ModNoteData CreateBomb(float time, int lineIndex)
         {
-            return new ModNoteData(time, lineIndex, layer, ModNoteCutDirection.None, ModColorType.None);
-        }
-
-        public void MirrorLineIndex(int numberOfLines)
-        {
-            lineIndex = numberOfLines - 1 - lineIndex;
-            SwitchColorType();
-            MirrorCutDirection();
-        }
-
-        public void MirrorCutDirection()
-        {
-            switch(cutDirection)
-            {
-                case ModNoteCutDirection.Left:
-                    cutDirection = ModNoteCutDirection.Right;
-                    break;
-                case ModNoteCutDirection.Right:
-                    cutDirection = ModNoteCutDirection.Left;
-                    break;
-                case ModNoteCutDirection.UpLeft:
-                    cutDirection = ModNoteCutDirection.UpRight;
-                    break;
-                case ModNoteCutDirection.UpRight:
-                    cutDirection = ModNoteCutDirection.UpLeft;
-                    break;
-                case ModNoteCutDirection.DownLeft:
-                    cutDirection = ModNoteCutDirection.DownRight;
-                    break;
-                case ModNoteCutDirection.DownRight:
-                    cutDirection = ModNoteCutDirection.DownLeft;
-                    break;
-            }
-        }
-
-        public void SwitchColorType()
-        {
-            if (colorType == ModColorType.ColorA)
-            {
-                colorType = ModColorType.ColorB;
-            }
-            else if (colorType == ModColorType.ColorB)
-            {
-                colorType = ModColorType.ColorA;
-            }
+            return new ModNoteData(time, lineIndex, ModNoteCutDirection.None, ModColorType.None);
         }
     }
 }
