@@ -7,14 +7,14 @@ using System.Threading.Tasks;
 
 namespace Beat360fyerPlugin
 {
-    public class ModBeatmapDataOld
+    public class ModBeatmapData
     {
         public List<BeatmapObjectData> objects = new List<BeatmapObjectData>();
         public List<BeatmapEventData> events = new List<BeatmapEventData>();
 
         private CustomBeatmapData from;
 
-        public ModBeatmapDataOld(CustomBeatmapData from)
+        public ModBeatmapData(CustomBeatmapData from)
         {
             this.from = from;
             foreach (BeatmapObjectData d in from.beatmapObjectsData)

@@ -72,14 +72,12 @@ namespace LibBeatGenerator
         public ModBeatmapEventType type;
         public float time; 
         public int value;
-        public IDictionary<string, object> customData;
 
-        public ModBeatmapEventData(float time, ModBeatmapEventType type, int value, IDictionary<string, object> customData = null)
+        public ModBeatmapEventData(float time, ModBeatmapEventType type, int value)
         {
             this.time = time;
             this.type = type;
             this.value = value;
-            this.customData = customData;
         }
     }
 
@@ -139,14 +137,12 @@ namespace LibBeatGenerator
         public ModNoteCutDirection cutDirection;
         public ModColorType colorType;
         public ModNoteLineLayer noteLineLayer;
-        public IDictionary<string, object> customData;
 
-        public ModNoteData(float time, int lineIndex, ModNoteLineLayer layer, ModNoteCutDirection cutDirection, ModColorType colorType, IDictionary<string, object> customData = null) : base(time, lineIndex)
+        public ModNoteData(float time, int lineIndex, ModNoteLineLayer layer, ModNoteCutDirection cutDirection, ModColorType colorType) : base(time, lineIndex)
         {
             this.cutDirection = cutDirection;
             this.noteLineLayer = layer;
             this.colorType = colorType;
-            this.customData = customData;
         }
 
         public static ModNoteData CreateBomb(float time, int lineIndex, ModNoteLineLayer layer)
@@ -196,33 +192,6 @@ namespace LibBeatGenerator
             {
                 colorType = ModColorType.ColorA;
             }
-        }
-    }
-
-    public enum ModOffsetDirection
-    {
-        Up = 0,
-        Down = 1,
-        Left = 2,
-        Right = 3,
-        UpLeft = 4,
-        UpRight = 5,
-        DownLeft = 6,
-        DownRight = 7,
-        None = 9
-    }
-
-    public class ModWaypointData : ModBeatmapObjectData
-    {
-        public ModNoteLineLayer noteLineLayer;
-        public ModOffsetDirection offsetDirection;
-        public IDictionary<string, object> customData;
-
-        public ModWaypointData(float time, int lineIndex, ModNoteLineLayer layer, ModOffsetDirection direction, IDictionary<string, object> customData = null) : base(time, lineIndex)
-        {
-            noteLineLayer = layer;
-            offsetDirection = direction;
-            this.customData = customData;
         }
     }
 }
