@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using LibBeatGenerator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,18 +15,6 @@ namespace Beat360fyerPlugin.Patches
     public class TransitionPatcher
     {
         private static HashSet<IDifficultyBeatmap> generated = new HashSet<IDifficultyBeatmap>();
-
-        private static Generator360 generator;
-
-        static TransitionPatcher()
-        {
-            generator = new Generator360();
-            generator.Logger += Plugin.Log.Info;
-
-        
-
-
-        }
 
         static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, OverrideEnvironmentSettings overrideEnvironmentSettings, ref ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
@@ -49,23 +36,22 @@ namespace Beat360fyerPlugin.Patches
                 if (!generated.Contains(difficultyBeatmap))
                 {
                     generated.Add(difficultyBeatmap);
+                    Generator360 gen = new Generator360();
+                    gen.WallGenerator = Config.Instance.EnableWallGenerator;
+                    gen.OnlyOneSaber = Config.Instance.OnlyOneSaber;
 
-                    generator.WallGenerator = Config.Instance.EnableWallGenerator;
-                    generator.OnlyOneSaber = Config.Instance.OnlyOneSaber;
                     if (startingGameModeName == GameModeHelper.GENERATED_90DEGREE_MODE)
                     {
-                        generator.LimitRotations = Config.Instance.LimitRotations90;
-                        generator.BottleneckRotations = Config.Instance.LimitRotations90 / 2;
+                        gen.LimitRotations = Config.Instance.LimitRotations90;
+                        gen.BottleneckRotations = Config.Instance.LimitRotations90 / 2;
                     }
                     else if (startingGameModeName == GameModeHelper.GENERATED_360DEGREE_MODE)
                     {
-                        generator.LimitRotations = Config.Instance.LimitRotations360;
-                        generator.BottleneckRotations = Config.Instance.LimitRotations360 / 2;
+                        gen.LimitRotations = Config.Instance.LimitRotations360;
+                        gen.BottleneckRotations = Config.Instance.LimitRotations360 / 2;
                     }
 
-                    ModBeatmapData mod = difficultyBeatmap.ToModBeatmap();
-                    generator.Generate(mod);
-                    mod.ToBeatmap(difficultyBeatmap);
+                    gen.Generate(difficultyBeatmap);
                 }
                 else
                 {
