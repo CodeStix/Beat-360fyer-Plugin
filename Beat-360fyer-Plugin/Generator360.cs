@@ -64,7 +64,7 @@ namespace Beat360fyerPlugin
         {
             ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
 
-            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && d.customData is ExpandoObject && (((IDictionary<string, object>)d.customData)?.ContainsKey("_position") ?? false)) > 12;
+            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && (d.customData?.ContainsKey("_position") ?? false)) > 12;
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -102,7 +102,8 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount, Trees.Tree()));
+                //data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+                data.events.Add(new BeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
             
             float beatDuration = 60f / bm.level.beatsPerMinute;
@@ -213,7 +214,7 @@ namespace Beat360fyerPlugin
 #endif
 
                     if (notesInBarBeat.Count == 0) 
-                        continue;
+                            continue;
 
                     float currentBarBeatStart = firstBeatmapNoteTime + currentBarStart + j * dividedBarLength;
 
@@ -344,9 +345,10 @@ namespace Beat360fyerPlugin
                                 if (wallDuration > 0f)
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
-                                    dynamic t = Trees.Tree();
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    data.objects.Add(new CustomObstacleData(wallTime, 3, type, wallDuration, 1, t));
+                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    //cod.customData.Add("bpm", bm.level.beatsPerMinute);
+                                    ObstacleData cod = new ObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    data.objects.Add(cod);
                                 }
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
@@ -359,9 +361,10 @@ namespace Beat360fyerPlugin
                                 if (wallDuration > 0f)
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
-                                    dynamic t = Trees.Tree();
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    data.objects.Add(new CustomObstacleData(wallTime, 0, type, wallDuration, 1, t));
+                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    //cod.customData.Add("bpm", bm.level.beatsPerMinute);
+                                    ObstacleData cod = new ObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    data.objects.Add(cod);
                                 }
                             }
                         }
@@ -391,10 +394,9 @@ namespace Beat360fyerPlugin
 
                     // Do not cut a margin around the wall if the wall is at a custom position
                     bool isCustomWall = false;
-                    if (ob.customData is ExpandoObject && ob.customData != null)
+                    if (ob.customData != null)
                     {
-                        IDictionary<string, object> customDataDict = (IDictionary<string, object>)ob.customData;
-                        isCustomWall = customDataDict.ContainsKey("_position");
+                        isCustomWall = ob.customData.ContainsKey("_position");
                     }
                     float frontCut = isCustomWall ? 0f : WallFrontCut;
                     float backCut = isCustomWall ? 0f : WallBackCut;
@@ -426,11 +428,11 @@ namespace Beat360fyerPlugin
                                 // Split the wall in half by creating a second wall
                                 if (secondPartDuration > 0.01f)
                                 {
-                                    dynamic t = Trees.Copy(ob.customData);
-                                    t.bpm = bm.level.beatsPerMinute;
-                                    CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width, t);
+                                    //CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
+                                    //secondPart.customData.Add("bpm", bm.level.beatsPerMinute);
+                                    ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
                                     data.objects.Add(secondPart);
-                                    obstacles.Enqueue(secondPart);
+                                    //obstacles.Enqueue(secondPart);
                                 }
 
                                 // Modify first half of wall
