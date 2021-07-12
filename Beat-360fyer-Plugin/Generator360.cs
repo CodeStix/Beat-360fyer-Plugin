@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -60,6 +61,26 @@ namespace Beat360fyerPlugin
             return f - i >= 0.999f ? i + 1 : i;
         }
 
+        // CustomObstacleData's constructor is private, call it using reflection..
+        // https://github.com/Aeroluna/CustomJSONData/tree/master/CustomJSONData
+        private CustomObstacleData NewCustomObstacleData(float time, int lineIndex, ObstacleType obstacleType, float duration, int width)
+        {
+            Type t = typeof(CustomObstacleData);
+            ConstructorInfo ci = t.GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null, new[] { typeof(float), typeof(int), typeof(ObstacleType), typeof(float), typeof(int), typeof(Dictionary<string,object>) }, null);
+            return (CustomObstacleData)ci.Invoke(new object[] { time, lineIndex, obstacleType, duration, width, new Dictionary<string, object>() });
+        }
+
+        private CustomBeatmapEventData NewCustomBeatmapEventData(float time, BeatmapEventType type, int value)
+        {
+            Type t = typeof(CustomBeatmapEventData);
+            ConstructorInfo ci = t.GetConstructor(
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null, new[] { typeof(float), typeof(BeatmapEventType), typeof(int), typeof(Dictionary<string, object>) }, null);
+            return (CustomBeatmapEventData)ci.Invoke(new object[] { time, type, value, new Dictionary<string, object>() });
+        }
+
         public void Generate(IDifficultyBeatmap bm)
         {
             ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
@@ -103,7 +124,7 @@ namespace Beat360fyerPlugin
                 wallCutMoments.Add((time, amount));
 
                 //data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
-                data.events.Add(new BeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+                data.events.Add(NewCustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
             }
             
             float beatDuration = 60f / bm.level.beatsPerMinute;
@@ -346,8 +367,8 @@ namespace Beat360fyerPlugin
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
                                     //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
-                                    //cod.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    ObstacleData cod = new ObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    CustomObstacleData cod = NewCustomObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    cod.customData.Add("bpm", bm.level.beatsPerMinute);
                                     data.objects.Add(cod);
                                 }
                             }
@@ -361,9 +382,9 @@ namespace Beat360fyerPlugin
                                 if (wallDuration > 0f)
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
-                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
-                                    //cod.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    ObstacleData cod = new ObstacleData(wallTime, 3, type, wallDuration, 1);
+                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 0, type, wallDuration, 1);
+                                    CustomObstacleData cod = NewCustomObstacleData(wallTime, 0, type, wallDuration, 1);
+                                    cod.customData.Add("bpm", bm.level.beatsPerMinute);
                                     data.objects.Add(cod);
                                 }
                             }
@@ -430,9 +451,9 @@ namespace Beat360fyerPlugin
                                 {
                                     //CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
                                     //secondPart.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
+                                    CustomObstacleData secondPart = NewCustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
                                     data.objects.Add(secondPart);
-                                    //obstacles.Enqueue(secondPart);
+                                    obstacles.Enqueue(secondPart);
                                 }
 
                                 // Modify first half of wall
@@ -440,7 +461,6 @@ namespace Beat360fyerPlugin
                                 ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
                             }
 
-                           
 #if DEBUG
                             Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
 #endif
