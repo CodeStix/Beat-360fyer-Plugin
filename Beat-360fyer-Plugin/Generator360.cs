@@ -104,7 +104,7 @@ namespace Beat360fyerPlugin
 
                 data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount, Trees.Tree()));
             }
-
+            
             float beatDuration = 60f / bm.level.beatsPerMinute;
 
             // Align PreferredBarDuration to beatDuration
