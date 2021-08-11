@@ -25,14 +25,13 @@ namespace Beat360fyerPlugin
 
         public CustomBeatmapData ToBeatmap()
         {
-            CustomBeatmapData bm = new CustomBeatmapData(from.numberOfLines);
+            CustomBeatmapData bm = new CustomBeatmapData(from.numberOfLines, from.customEventsData, from.customData, from.beatmapCustomData, from.levelCustomData);
             foreach (BeatmapObjectData o in objects.OrderBy((e) => e.time))
                 if (!(o is ObstacleData ob && ob.duration == 0f) && o.time > 0f)
                     bm.AddBeatmapObjectData(o);
             foreach (BeatmapEventData o in events.OrderBy((e) => e.time))
                 bm.AddBeatmapEventData(o);
             CustomBeatmapData.CopyAvailableSpecialEventsPerKeywordDictionary(this.from, bm);
-            CustomBeatmapData.CopyCustomData(this.from, bm);
             return bm;
         }
     }
