@@ -14,7 +14,7 @@ After doing this, **every** beatmap will have the 360/90 degree gamemode enabled
 
 The algorithm is completely deterministic and does not use random chance, it generates rotation events based on the notes in the *Standard* beatmap. 
 
-**It also makes sure to not ruin your cable by rotating too mush!**
+**It also makes sure to not ruin your cable by rotating too much!**
 
 ## Config file
 
