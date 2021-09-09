@@ -331,7 +331,7 @@ namespace Beat360fyerPlugin
                                 // Switch all notes to ColorA
                                 if (nd.colorType == ColorType.ColorB)
                                 {
-                                    nd.MirrorLineIndex(bm.beatmapData.numberOfLines);
+                                    nd.Mirror(bm.beatmapData.numberOfLines);
                                 }
                             }
                         }
