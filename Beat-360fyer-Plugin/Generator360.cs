@@ -77,8 +77,8 @@ namespace Beat360fyerPlugin
             Type t = typeof(CustomBeatmapEventData);
             ConstructorInfo ci = t.GetConstructor(
                 BindingFlags.Instance | BindingFlags.NonPublic,
-                null, new[] { typeof(float), typeof(BeatmapEventType), typeof(int), typeof(Dictionary<string, object>) }, null);
-            return (CustomBeatmapEventData)ci.Invoke(new object[] { time, type, value, new Dictionary<string, object>() });
+                null, new[] { typeof(float), typeof(BeatmapEventType), typeof(int), typeof(float), typeof(Dictionary<string, object>) }, null);
+            return (CustomBeatmapEventData)ci.Invoke(new object[] { time, type, value, (float)value, new Dictionary<string, object>() });
         }
 
         public void Generate(IDifficultyBeatmap bm)

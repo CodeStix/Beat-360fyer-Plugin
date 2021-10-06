@@ -54,9 +54,9 @@
     <Reference Include="Core">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\Core.dll</HintPath>
     </Reference>
-    <Reference Include="CustomJSONData, Version=2.0.4.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="CustomJSONData, Version=2.0.7.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Plugins\CustomJSONData.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Games\steamapps\common\Beat Saber\Plugins\CustomJSONData.dll</HintPath>
     </Reference>
     <Reference Include="GameplayCore">
       <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Beat Saber\Beat Saber_Data\Managed\GameplayCore.dll</HintPath>
