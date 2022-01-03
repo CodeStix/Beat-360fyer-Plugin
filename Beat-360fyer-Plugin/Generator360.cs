@@ -255,11 +255,11 @@ namespace Beat360fyerPlugin
                     if (afterLastNote != null)
                     {
                         float timeDiff = afterLastNote.time - lastNote.time;
-                        if (notesInBarBeat.Count >= 2)
+                        if (notesInBarBeat.Count >= 1)
                         {
                             if (timeDiff >= barLength)
                                 rotationCount = 3;
-                            else if (timeDiff >= barLength / 4)
+                            else if (timeDiff >= barLength / 8)
                                 rotationCount = 2;
                         }
                     }

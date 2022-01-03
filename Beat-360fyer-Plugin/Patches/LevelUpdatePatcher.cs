@@ -65,7 +65,7 @@ namespace Beat360fyerPlugin.Patches
     [HarmonyPatch("SetContent")]
     public class LevelUpdatePatcher
     {
-        static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData, bool showPlayerStats)
+        static void Prefix(StandardLevelDetailView __instance, IBeatmapLevel level, BeatmapDifficulty defaultDifficulty, BeatmapCharacteristicSO defaultBeatmapCharacteristic, PlayerData playerData)
         {
             List<BeatmapCharacteristicSO> toGenerate = new List<BeatmapCharacteristicSO>();
             if (Config.Instance.ShowGenerated360)
