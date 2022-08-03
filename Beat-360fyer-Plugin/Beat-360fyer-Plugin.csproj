@@ -103,7 +103,6 @@
     <Compile Include="FieldHelper.cs" />
     <Compile Include="GameModeHelper.cs" />
     <Compile Include="Generator360.cs" />
-    <Compile Include="ModBeatmapData.cs" />
     <Compile Include="Patches\LevelUpdatePatcher.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Config.cs" />
