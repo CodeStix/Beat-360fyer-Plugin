@@ -1,4 +1,5 @@
-﻿using CustomJSONData;
+﻿using BeatmapSaveDataVersion3;
+using CustomJSONData;
 using CustomJSONData.CustomBeatmap;
 using System;
 using System.Collections.Generic;
@@ -61,31 +62,13 @@ namespace Beat360fyerPlugin
             return f - i >= 0.999f ? i + 1 : i;
         }
 
-        // CustomObstacleData's constructor is private, call it using reflection..
-        // https://github.com/Aeroluna/CustomJSONData/tree/master/CustomJSONData
-        private CustomObstacleData NewCustomObstacleData(float time, int lineIndex, ObstacleType obstacleType, float duration, int width)
+        public IReadonlyBeatmapData Generate(IReadonlyBeatmapData bmData, float bpm)
         {
-            Type t = typeof(CustomObstacleData);
-            ConstructorInfo ci = t.GetConstructor(
-                BindingFlags.Instance | BindingFlags.NonPublic,
-                null, new[] { typeof(float), typeof(int), typeof(ObstacleType), typeof(float), typeof(int), typeof(Dictionary<string,object>) }, null);
-            return (CustomObstacleData)ci.Invoke(new object[] { time, lineIndex, obstacleType, duration, width, new Dictionary<string, object>() });
-        }
-
-        private CustomBeatmapEventData NewCustomBeatmapEventData(float time, BeatmapEventType type, int value)
-        {
-            Type t = typeof(CustomBeatmapEventData);
-            ConstructorInfo ci = t.GetConstructor(
-                BindingFlags.Instance | BindingFlags.NonPublic,
-                null, new[] { typeof(float), typeof(BeatmapEventType), typeof(int), typeof(float), typeof(Dictionary<string, object>) }, null);
-            return (CustomBeatmapEventData)ci.Invoke(new object[] { time, type, value, (float)value, new Dictionary<string, object>() });
-        }
-
-        public void Generate(IDifficultyBeatmap bm)
-        {
-            ModBeatmapData data = new ModBeatmapData((CustomBeatmapData)bm.beatmapData);
-
-            bool containsCustomWalls = data.objects.Count((e) => e is CustomObstacleData d && (d.customData?.ContainsKey("_position") ?? false)) > 12;
+            BeatmapData data = bmData.GetCopy();
+            LinkedList<BeatmapDataItem> dataItems = data.allBeatmapDataItems;
+            
+            bool containsCustomWalls = dataItems.Count((e) => e is CustomObstacleData d && (d.customData?.ContainsKey("_position") ?? false)) > 12;
+            Plugin.Log.Info($"Contains custom walls: {containsCustomWalls}");
 
             // Amount of rotation events emitted
             int eventCount = 0;
@@ -123,11 +106,10 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                //data.events.Add(new CustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
-                data.events.Add(NewCustomBeatmapEventData(time, BeatmapEventType.Event15, amount > 0 ? 3 + amount : 4 + amount));
+                data.InsertBeatmapEventData(new SpawnRotationBeatmapEventData(time, SpawnRotationBeatmapEventData.SpawnRotationEventType.Early, amount > 0 ? 3 + amount : 4 + amount));
             }
             
-            float beatDuration = 60f / bm.level.beatsPerMinute;
+            float beatDuration = 60f / bpm;
 
             // Align PreferredBarDuration to beatDuration
             float barLength = beatDuration; 
@@ -136,7 +118,7 @@ namespace Beat360fyerPlugin
             while (barLength < PreferredBarDuration * 0.75f)
                 barLength *= 2f;
 
-            List<NoteData> notes = data.objects.OfType<NoteData>().ToList();
+            List<NoteData> notes = dataItems.OfType<NoteData>().ToList();
             List<NoteData> notesInBar = new List<NoteData>();
             List<NoteData> notesInBarBeat = new List<NoteData>();
 
@@ -324,14 +306,14 @@ namespace Beat360fyerPlugin
                             if (nd.colorType == (rotation > 0 ? ColorType.ColorA : ColorType.ColorB))
                             {
                                 // Note will be removed later
-                                nd.MoveTime(0f);
+                                nd.UpdateTime(0f);
                             }
                             else
                             {
                                 // Switch all notes to ColorA
                                 if (nd.colorType == ColorType.ColorB)
                                 {
-                                    nd.Mirror(bm.beatmapData.numberOfLines);
+                                    nd.Mirror(data.numberOfLines);
                                 }
                             }
                         }
@@ -345,7 +327,7 @@ namespace Beat360fyerPlugin
 
                         // Check if there is already a wall
                         bool generateWall = true;
-                        foreach (ObstacleData obs in data.objects.OfType<ObstacleData>())
+                        foreach (ObstacleData obs in dataItems.OfType<ObstacleData>())
                         {
                             if (obs.time + obs.duration >= wallTime && obs.time < wallTime + wallDuration)
                             {
@@ -358,34 +340,34 @@ namespace Beat360fyerPlugin
                         {
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 3))
                             {
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 2) ? ObstacleType.Top : ObstacleType.FullHeight;
+                                int wallHeight = notesInBarBeat.Any((e) => e.lineIndex == 2) ? 1 : 3;
 
-                                if (afterLastNote.lineIndex == 3 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                if (afterLastNote.lineIndex == 3 && !(wallHeight == 1 && afterLastNote.noteLineLayer == NoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
                                 if (wallDuration > 0f)
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
                                     //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
-                                    CustomObstacleData cod = NewCustomObstacleData(wallTime, 3, type, wallDuration, 1);
-                                    cod.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    data.objects.Add(cod);
+                                    CustomObstacleData cod = new CustomObstacleData(wallTime, 3, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight, new CustomData());
+                                    cod.customData.TryAdd("bpm", bpm);
+                                    data.AddBeatmapObjectData(cod);
                                 }
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
                             {
-                                ObstacleType type = notesInBarBeat.Any((e) => e.lineIndex == 1) ? ObstacleType.Top : ObstacleType.FullHeight;
+                                int wallHeight = notesInBarBeat.Any((e) => e.lineIndex == 1) ? 1 : 3;
 
-                                if (afterLastNote.lineIndex == 0 && !(type == ObstacleType.Top && afterLastNote.noteLineLayer == NoteLineLayer.Base))
+                                if (afterLastNote.lineIndex == 0 && !(wallHeight == 1 && afterLastNote.noteLineLayer == NoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
                                 if (wallDuration > 0f)
                                 {
                                     // Workaround for NoodleExtensions error, why tf does this work??
                                     //CustomObstacleData cod = new CustomObstacleData(wallTime, 0, type, wallDuration, 1);
-                                    CustomObstacleData cod = NewCustomObstacleData(wallTime, 0, type, wallDuration, 1);
-                                    cod.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    data.objects.Add(cod);
+                                    CustomObstacleData cod = new CustomObstacleData(wallTime, 0, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight, new CustomData());
+                                    cod.customData.TryAdd("bpm", bpm);
+                                    data.AddBeatmapObjectData(cod);
                                 }
                             }
                         }
@@ -404,7 +386,7 @@ namespace Beat360fyerPlugin
 
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            Queue<CustomObstacleData> obstacles = new Queue<CustomObstacleData>(data.objects.OfType<CustomObstacleData>());
+            Queue<CustomObstacleData> obstacles = new Queue<CustomObstacleData>(dataItems.OfType<CustomObstacleData>());
             while (obstacles.Count > 0)
             {
                 CustomObstacleData ob = obstacles.Dequeue();
@@ -441,7 +423,7 @@ namespace Beat360fyerPlugin
 
                             if (secondPartDuration > 0f && firstPartDuration <= 0.01f)
                             {
-                                ob.MoveTime(secondPartTime);
+                                ob.UpdateTime(secondPartTime);
                                 ob.UpdateDuration(secondPartDuration);
                             }
                             else
@@ -451,13 +433,13 @@ namespace Beat360fyerPlugin
                                 {
                                     //CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
                                     //secondPart.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    CustomObstacleData secondPart = NewCustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
-                                    data.objects.Add(secondPart);
+                                    CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height, new CustomData()); ;
+                                    data.AddBeatmapObjectData(secondPart);
                                     obstacles.Enqueue(secondPart);
                                 }
 
                                 // Modify first half of wall
-                                ob.MoveTime(firstPartTime);
+                                ob.UpdateTime(firstPartTime);
                                 ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
                             }
 
@@ -471,7 +453,7 @@ namespace Beat360fyerPlugin
             }
 
             // Remove bombs
-            foreach(CustomNoteData nd in data.objects.OfType<CustomNoteData>().Where((e) => e.cutDirection == NoteCutDirection.None))
+            foreach(CustomNoteData nd in dataItems.OfType<CustomNoteData>().Where((e) => e.cutDirection == NoteCutDirection.None))
             {
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
@@ -480,7 +462,7 @@ namespace Beat360fyerPlugin
                         if ((nd.lineIndex <= 2 && cutAmount < 0) || (nd.lineIndex >= 1 && cutAmount > 0))
                         {
                             // Will be removed later
-                            nd.MoveTime(0f);
+                            nd.UpdateTime(0f);
                         }
                     }
                 }
@@ -488,13 +470,42 @@ namespace Beat360fyerPlugin
 
             Plugin.Log.Info($"Emitted {eventCount} rotation events");
 
-            if (!FieldHelper.Set(bm, "_beatmapData", data.ToBeatmap()))
+            BeatmapData cleanedData = new BeatmapData(data.numberOfLines);
+            foreach(BeatmapDataItem item in data.allBeatmapDataItems)
             {
-                Plugin.Log.Error($"Could not replace beatmap");
+                if (item.time <= 0f) 
+                {
+                    continue;
+                }
+
+                if (item is ObstacleData obstacleData)
+                {
+                    if (obstacleData.duration > 0f)
+                    {
+                        cleanedData.AddBeatmapObjectData(obstacleData);
+                    }
+                }
+                else if (item is BeatmapEventData eventData)
+                {
+                    cleanedData.InsertBeatmapEventData(eventData);
+                }
+                else if (item is BeatmapObjectData objectData)
+                {
+                    cleanedData.AddBeatmapObjectData(objectData);
+                }
             }
 
-            Plugin.Log.Info($"Contains custom walls: {containsCustomWalls}");
+            return cleanedData;
         }
 
     }
+
+    public static class BeatmapDataItemExtensions
+    {
+        public static void UpdateTime(this BeatmapDataItem item, float newTime)
+        {
+            FieldHelper.SetProperty(item, "time", newTime);
+        }
+    }
 }
+
