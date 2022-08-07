@@ -84,32 +84,28 @@ namespace Beat360fyerPlugin.Patches
                     // Level does not have a standard mode to base its 360 mode on
                     continue;
                 }
+                
 
                 IDifficultyBeatmapSet newSet;
                 if (basedOnGameMode.difficultyBeatmaps[0] is BeatmapLevelSO.DifficultyBeatmap)
                 {
-                    Plugin.Log.Info("Creating new DifficultyBeatmapSet");
-                    IReadOnlyList<IDifficultyBeatmap> difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Select((bm) => new BeatmapLevelSO.DifficultyBeatmap(bm.level, bm.difficulty, bm.difficultyRank, bm.noteJumpMovementSpeed, bm.noteJumpStartBeatOffset, FieldHelper.Get<BeatmapDataSO>(bm, "_beatmapData"))).ToList();
-                    newSet = new DifficultyBeatmapSet(customGameMode, difficultyBeatmaps);
-                    //newSet = new DifficultyBeatmapSet(customGameMode, basedOnGameMode.difficultyBeatmaps);
+                    BeatmapLevelSO.DifficultyBeatmap[] difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Select((bm) => new BeatmapLevelSO.DifficultyBeatmap(bm.level, bm.difficulty, bm.difficultyRank, bm.noteJumpMovementSpeed, bm.noteJumpStartBeatOffset, FieldHelper.Get<BeatmapDataSO>(bm, "_beatmapData"))).ToArray();
+                    newSet = new BeatmapLevelSO.DifficultyBeatmapSet(customGameMode, difficultyBeatmaps);
+                    foreach(BeatmapLevelSO.DifficultyBeatmap dbm in difficultyBeatmaps)
+                    {
+                        dbm.SetParents(level, newSet);
+                    }
                 }
                 else if (basedOnGameMode.difficultyBeatmaps[0] is CustomDifficultyBeatmap)
                 {
-                    Plugin.Log.Info("Creating new CustomDifficultyBeatmapSet");
                     CustomDifficultyBeatmapSet customSet = new CustomDifficultyBeatmapSet(customGameMode);
-                    CustomDifficultyBeatmap[] difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Select((bm) =>
-                    {
-                        CustomDifficultyBeatmap cbm = (CustomDifficultyBeatmap)bm;
-                        return new CustomDifficultyBeatmap(cbm.level, customSet, cbm.difficulty, cbm.difficultyRank, cbm.noteJumpMovementSpeed, cbm.noteJumpStartBeatOffset, cbm.beatsPerMinute, cbm.beatmapSaveData, cbm.beatmapDataBasicInfo);
-                    }).ToArray();
+                    CustomDifficultyBeatmap[] difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Cast<CustomDifficultyBeatmap>().Select((cbm) => new CustomDifficultyBeatmap(cbm.level, customSet, cbm.difficulty, cbm.difficultyRank, cbm.noteJumpMovementSpeed, cbm.noteJumpStartBeatOffset, cbm.beatsPerMinute, cbm.beatmapSaveData, cbm.beatmapDataBasicInfo)).ToArray();
                     customSet.SetCustomDifficultyBeatmaps(difficultyBeatmaps);
-                    //customSet.SetCustomDifficultyBeatmaps(basedOnGameMode.difficultyBeatmaps.Cast<CustomDifficultyBeatmap>().ToArray());
-
                     newSet = customSet;
                 }
                 else
                 {
-                    Debug.Log($"Cannot create generated mode for {basedOnGameMode.difficultyBeatmaps[0]}");
+                    Plugin.Log.Error($"Cannot create generated mode for {basedOnGameMode.difficultyBeatmaps[0]}");
                     continue;
                 }
 
