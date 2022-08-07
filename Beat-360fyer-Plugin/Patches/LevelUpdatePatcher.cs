@@ -49,7 +49,7 @@ namespace Beat360fyerPlugin.Patches
 
         static void Prefix(string gameMode, IDifficultyBeatmap difficultyBeatmap, IPreviewBeatmapLevel previewBeatmapLevel, OverrideEnvironmentSettings overrideEnvironmentSettings, ColorScheme overrideColorScheme, GameplayModifiers gameplayModifiers, PlayerSpecificSettings playerSpecificSettings, PracticeSettings practiceSettings, string backButtonText, bool useTestNoteCutSoundEffects, bool startPaused, Action beforeSceneSwitchCallback, Action<DiContainer> afterSceneSwitchCallback, Action<StandardLevelScenesTransitionSetupDataSO, LevelCompletionResults> levelFinishedCallback)
         {
-            Plugin.Log.Info($"Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName}");
+            Plugin.Log.Info($"Starting ({difficultyBeatmap.GetType().FullName}) {difficultyBeatmap.SerializedName()} {gameMode} {difficultyBeatmap.difficulty} {difficultyBeatmap.level.songName} {difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName}");
             startingGameMode = difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
         }
     }
@@ -88,11 +88,14 @@ namespace Beat360fyerPlugin.Patches
                 IDifficultyBeatmapSet newSet;
                 if (basedOnGameMode.difficultyBeatmaps[0] is BeatmapLevelSO.DifficultyBeatmap)
                 {
+                    Plugin.Log.Info("Creating new DifficultyBeatmapSet");
                     IReadOnlyList<IDifficultyBeatmap> difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Select((bm) => new BeatmapLevelSO.DifficultyBeatmap(bm.level, bm.difficulty, bm.difficultyRank, bm.noteJumpMovementSpeed, bm.noteJumpStartBeatOffset, FieldHelper.Get<BeatmapDataSO>(bm, "_beatmapData"))).ToList();
                     newSet = new DifficultyBeatmapSet(customGameMode, difficultyBeatmaps);
+                    //newSet = new DifficultyBeatmapSet(customGameMode, basedOnGameMode.difficultyBeatmaps);
                 }
                 else if (basedOnGameMode.difficultyBeatmaps[0] is CustomDifficultyBeatmap)
                 {
+                    Plugin.Log.Info("Creating new CustomDifficultyBeatmapSet");
                     CustomDifficultyBeatmapSet customSet = new CustomDifficultyBeatmapSet(customGameMode);
                     CustomDifficultyBeatmap[] difficultyBeatmaps = basedOnGameMode.difficultyBeatmaps.Select((bm) =>
                     {
@@ -100,11 +103,13 @@ namespace Beat360fyerPlugin.Patches
                         return new CustomDifficultyBeatmap(cbm.level, customSet, cbm.difficulty, cbm.difficultyRank, cbm.noteJumpMovementSpeed, cbm.noteJumpStartBeatOffset, cbm.beatsPerMinute, cbm.beatmapSaveData, cbm.beatmapDataBasicInfo);
                     }).ToArray();
                     customSet.SetCustomDifficultyBeatmaps(difficultyBeatmaps);
+                    //customSet.SetCustomDifficultyBeatmaps(basedOnGameMode.difficultyBeatmaps.Cast<CustomDifficultyBeatmap>().ToArray());
 
                     newSet = customSet;
                 }
                 else
                 {
+                    Debug.Log($"Cannot create generated mode for {basedOnGameMode.difficultyBeatmaps[0]}");
                     continue;
                 }
 

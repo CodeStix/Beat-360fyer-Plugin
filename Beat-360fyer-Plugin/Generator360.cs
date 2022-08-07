@@ -54,6 +54,10 @@ namespace Beat360fyerPlugin
         /// True if you only want to keep notes of one color.
         /// </summary>
         public bool OnlyOneSaber { get; set; } = false;
+        /// <summary>
+        /// The minimum duration of a wall before it gets discarded
+        /// </summary>
+        public float MinWallDuration { get; set; } = 0.1f;
         
 
         private static int Floor(float f)
@@ -81,7 +85,7 @@ namespace Beat360fyerPlugin
             float previousSpinTime = float.MinValue;
 
             // Negative numbers rotate to the left, positive to the right
-            void Rotate(float time, int amount, bool enableLimit = true)
+            void Rotate(float time, int amount, SpawnRotationBeatmapEventData.SpawnRotationEventType moment, bool enableLimit = true)
             {
                 if (amount == 0)
                     return;
@@ -106,7 +110,7 @@ namespace Beat360fyerPlugin
                 eventCount++;
                 wallCutMoments.Add((time, amount));
 
-                data.InsertBeatmapEventData(new SpawnRotationBeatmapEventData(time, SpawnRotationBeatmapEventData.SpawnRotationEventType.Early, amount > 0 ? 3 + amount : 4 + amount));
+                data.InsertBeatmapEventData(new SpawnRotationBeatmapEventData(time, moment, amount * 15.0f));
             }
             
             float beatDuration = 60f / bpm;
@@ -164,7 +168,7 @@ namespace Beat360fyerPlugin
                     float spinStep = TotalSpinTime / 24;
                     for (int s = 0; s < 24; s++)
                     {
-                        Rotate(firstBeatmapNoteTime + currentBarStart + spinStep * s, spinDirection, false);
+                        Rotate(firstBeatmapNoteTime + currentBarStart + spinStep * s, spinDirection, SpawnRotationBeatmapEventData.SpawnRotationEventType.Early, false);
                     }
 
                     // Do not emit more rotation events after this
@@ -297,16 +301,16 @@ namespace Beat360fyerPlugin
 
 
                     // Finally rotate
-                    Rotate(lastNote.time + 0.01f, rotation);
+                    Rotate(lastNote.time, rotation, SpawnRotationBeatmapEventData.SpawnRotationEventType.Late);
 
                     if (OnlyOneSaber)
                     {
-                        foreach(CustomNoteData nd in notesInBarBeat)
+                        foreach(NoteData nd in notesInBarBeat)
                         {
                             if (nd.colorType == (rotation > 0 ? ColorType.ColorA : ColorType.ColorB))
                             {
-                                // Note will be removed later
-                                nd.UpdateTime(0f);
+                                // Remove note
+                                dataItems.Remove(nd);
                             }
                             else
                             {
@@ -345,13 +349,9 @@ namespace Beat360fyerPlugin
                                 if (afterLastNote.lineIndex == 3 && !(wallHeight == 1 && afterLastNote.noteLineLayer == NoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
-                                if (wallDuration > 0f)
+                                if (wallDuration > MinWallDuration)
                                 {
-                                    // Workaround for NoodleExtensions error, why tf does this work??
-                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 3, type, wallDuration, 1);
-                                    CustomObstacleData cod = new CustomObstacleData(wallTime, 3, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight, new CustomData());
-                                    cod.customData.TryAdd("bpm", bpm);
-                                    data.AddBeatmapObjectData(cod);
+                                    data.AddBeatmapObjectData(new ObstacleData(wallTime, 3, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight));
                                 }
                             }
                             if (!notesInBarBeat.Any((e) => e.lineIndex == 0))
@@ -361,13 +361,9 @@ namespace Beat360fyerPlugin
                                 if (afterLastNote.lineIndex == 0 && !(wallHeight == 1 && afterLastNote.noteLineLayer == NoteLineLayer.Base))
                                     wallDuration = afterLastNote.time - WallBackCut - wallTime;
 
-                                if (wallDuration > 0f)
+                                if (wallDuration > MinWallDuration)
                                 {
-                                    // Workaround for NoodleExtensions error, why tf does this work??
-                                    //CustomObstacleData cod = new CustomObstacleData(wallTime, 0, type, wallDuration, 1);
-                                    CustomObstacleData cod = new CustomObstacleData(wallTime, 0, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight, new CustomData());
-                                    cod.customData.TryAdd("bpm", bpm);
-                                    data.AddBeatmapObjectData(cod);
+                                    data.AddBeatmapObjectData(new ObstacleData(wallTime, 0, wallHeight == 1 ? NoteLineLayer.Top : NoteLineLayer.Base, wallDuration, 1, wallHeight));
                                 }
                             }
                         }
@@ -386,10 +382,10 @@ namespace Beat360fyerPlugin
 
 
             // Cut walls, walls will be cut when a rotation event is emitted
-            Queue<CustomObstacleData> obstacles = new Queue<CustomObstacleData>(dataItems.OfType<CustomObstacleData>());
+            Queue<ObstacleData> obstacles = new Queue<ObstacleData>(dataItems.OfType<ObstacleData>());
             while (obstacles.Count > 0)
             {
-                CustomObstacleData ob = obstacles.Dequeue();
+                ObstacleData ob = obstacles.Dequeue();
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
                     if (ob.duration <= 0f)
@@ -397,18 +393,18 @@ namespace Beat360fyerPlugin
 
                     // Do not cut a margin around the wall if the wall is at a custom position
                     bool isCustomWall = false;
-                    if (ob.customData != null)
-                    {
-                        isCustomWall = ob.customData.ContainsKey("_position");
-                    }
+                    //if (ob.customData != null)
+                    //{
+                    //    isCustomWall = ob.customData.ContainsKey("_position");
+                    //}
                     float frontCut = isCustomWall ? 0f : WallFrontCut;
                     float backCut = isCustomWall ? 0f : WallBackCut;
 
                     // If wall is uncomfortable for 360Degree mode, remove it
                     if (!isCustomWall && (ob.lineIndex == 1 || ob.lineIndex == 2 || (ob.lineIndex == 0 && ob.width > 1)))
                     {
-                        // Wall is not fun in 360, remove it, walls with negative/0 duration will filtered out later
-                        ob.UpdateDuration(0f);
+                        // Wall with this criteria is not fun in 360, remove it
+                        dataItems.Remove(ob);
                     }
                     // If moved in direction of wall
                     else if (isCustomWall || (ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
@@ -421,26 +417,34 @@ namespace Beat360fyerPlugin
                             float secondPartTime = cutTime + frontCut;
                             float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
 
-                            if (secondPartDuration > 0f && firstPartDuration <= 0.01f)
+                            if (secondPartDuration > MinWallDuration && firstPartDuration <= MinWallDuration)
                             {
+                                // Just overwrite first wall with second wall
                                 ob.UpdateTime(secondPartTime);
                                 ob.UpdateDuration(secondPartDuration);
                             }
                             else
                             {
                                 // Split the wall in half by creating a second wall
-                                if (secondPartDuration > 0.01f)
+                                if (secondPartDuration > MinWallDuration)
                                 {
                                     //CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
                                     //secondPart.customData.Add("bpm", bm.level.beatsPerMinute);
-                                    CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height, new CustomData()); ;
+                                    ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height);
                                     data.AddBeatmapObjectData(secondPart);
                                     obstacles.Enqueue(secondPart);
                                 }
 
                                 // Modify first half of wall
-                                ob.UpdateTime(firstPartTime);
-                                ob.UpdateDuration(Math.Max(firstPartDuration, 0f));
+                                if (firstPartDuration > MinWallDuration)
+                                {
+                                    ob.UpdateTime(firstPartTime);
+                                    ob.UpdateDuration(firstPartDuration);
+                                }
+                                else
+                                {
+                                    dataItems.Remove(ob);
+                                }
                             }
 
 #if DEBUG
@@ -453,7 +457,8 @@ namespace Beat360fyerPlugin
             }
 
             // Remove bombs
-            foreach(CustomNoteData nd in dataItems.OfType<CustomNoteData>().Where((e) => e.cutDirection == NoteCutDirection.None))
+            // ToList() is used so the Remove operation does not update the list that is being iterated
+            foreach(NoteData nd in dataItems.OfType<NoteData>().Where((e) => e.cutDirection == NoteCutDirection.None).ToList())
             {
                 foreach ((float cutTime, int cutAmount) in wallCutMoments)
                 {
@@ -462,7 +467,7 @@ namespace Beat360fyerPlugin
                         if ((nd.lineIndex <= 2 && cutAmount < 0) || (nd.lineIndex >= 1 && cutAmount > 0))
                         {
                             // Will be removed later
-                            nd.UpdateTime(0f);
+                            dataItems.Remove(nd);
                         }
                     }
                 }
@@ -470,32 +475,7 @@ namespace Beat360fyerPlugin
 
             Plugin.Log.Info($"Emitted {eventCount} rotation events");
 
-            BeatmapData cleanedData = new BeatmapData(data.numberOfLines);
-            foreach(BeatmapDataItem item in data.allBeatmapDataItems)
-            {
-                if (item.time <= 0f) 
-                {
-                    continue;
-                }
-
-                if (item is ObstacleData obstacleData)
-                {
-                    if (obstacleData.duration > 0f)
-                    {
-                        cleanedData.AddBeatmapObjectData(obstacleData);
-                    }
-                }
-                else if (item is BeatmapEventData eventData)
-                {
-                    cleanedData.InsertBeatmapEventData(eventData);
-                }
-                else if (item is BeatmapObjectData objectData)
-                {
-                    cleanedData.AddBeatmapObjectData(objectData);
-                }
-            }
-
-            return cleanedData;
+            return data;
         }
 
     }
@@ -504,7 +484,7 @@ namespace Beat360fyerPlugin
     {
         public static void UpdateTime(this BeatmapDataItem item, float newTime)
         {
-            FieldHelper.SetProperty(item, "time", newTime);
+            FieldHelper.SetProperty(item, "<time>k__BackingField", newTime);
         }
     }
 }
