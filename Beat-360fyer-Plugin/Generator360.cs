@@ -130,7 +130,7 @@ namespace Beat360fyerPlugin
             float firstBeatmapNoteTime = notes[0].time;
 
 #if DEBUG
-            Plugin.Log.Info($"Setup bpm={bm.level.beatsPerMinute} beatDuration={beatDuration} barLength={barLength} firstNoteTime={firstBeatmapNoteTime}");
+            Plugin.Log.Info($"Setup bpm={bpm} beatDuration={beatDuration} barLength={barLength} firstNoteTime={firstBeatmapNoteTime}");
 #endif
 
             for (int i = 0; i < notes.Count; )
@@ -422,14 +422,13 @@ namespace Beat360fyerPlugin
                                 // Just overwrite first wall with second wall
                                 ob.UpdateTime(secondPartTime);
                                 ob.UpdateDuration(secondPartDuration);
+                                obstacles.Enqueue(ob);
                             }
                             else
                             {
                                 // Split the wall in half by creating a second wall
                                 if (secondPartDuration > MinWallDuration)
                                 {
-                                    //CustomObstacleData secondPart = new CustomObstacleData(secondPartTime, ob.lineIndex, ob.obstacleType, secondPartDuration, ob.width);
-                                    //secondPart.customData.Add("bpm", bm.level.beatsPerMinute);
                                     ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height);
                                     data.AddBeatmapObjectData(secondPart);
                                     obstacles.Enqueue(secondPart);
@@ -440,6 +439,7 @@ namespace Beat360fyerPlugin
                                 {
                                     ob.UpdateTime(firstPartTime);
                                     ob.UpdateDuration(firstPartDuration);
+                                    obstacles.Enqueue(ob);
                                 }
                                 else
                                 {
