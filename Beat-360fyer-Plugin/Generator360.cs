@@ -410,45 +410,50 @@ namespace Beat360fyerPlugin
                     else if (isCustomWall || (ob.lineIndex <= 1 && cutAmount < 0) || (ob.lineIndex >= 2 && cutAmount > 0))
                     {
                         int cutMultiplier = Math.Abs(cutAmount);
-                        if (cutTime >= ob.time - frontCut && cutTime < ob.time + ob.duration + backCut * cutMultiplier)
+                        if (cutTime > ob.time - frontCut && cutTime < ob.time + ob.duration + backCut * cutMultiplier)
                         {
-                            float firstPartTime = ob.time;
-                            float firstPartDuration = (cutTime - backCut * cutMultiplier) - firstPartTime;
-                            float secondPartTime = cutTime + frontCut;
-                            float secondPartDuration = (ob.time + ob.duration) - secondPartTime;
+                            float originalTime = ob.time;
+                            float originalDuration = ob.duration;
 
-                            if (secondPartDuration > MinWallDuration && firstPartDuration <= MinWallDuration)
+                            // 225.431: 225.631(0.203476) -> 225.631() <|> 225.631(0.203476)
+                            float firstPartTime = ob.time; // 225.631
+                            float firstPartDuration = (cutTime - backCut * cutMultiplier) - firstPartTime; // -0.6499969
+                            float secondPartTime = cutTime + frontCut; // 225.631
+                            float secondPartDuration = (ob.time + ob.duration) - secondPartTime; //0.203476
+
+                            if (firstPartDuration >= MinWallDuration && secondPartDuration >= MinWallDuration)
                             {
-                                // Just overwrite first wall with second wall
-                                ob.UpdateTime(secondPartTime);
-                                ob.UpdateDuration(secondPartDuration);
-                                obstacles.Enqueue(ob);
+                                // Update duration of existing obstacle
+                                ob.UpdateDuration(firstPartDuration);
+
+                                // And create a new obstacle after it
+                                ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height);
+                                data.AddBeatmapObjectData(secondPart);
+                                obstacles.Enqueue(secondPart);
+                            }
+                            else if (firstPartDuration >= MinWallDuration)
+                            {
+                                // Just update the existing obstacle, the second piece of the cut wall is too small
+                                ob.UpdateDuration(firstPartDuration);
+                            }
+                            else if (secondPartDuration >= MinWallDuration)
+                            {
+                                // Reuse the obstacle and use it as second part
+                                if (secondPartTime != ob.time && secondPartDuration != ob.duration)
+                                {
+                                    ob.UpdateTime(secondPartTime);
+                                    ob.UpdateDuration(secondPartDuration);
+                                    obstacles.Enqueue(ob);
+                                }
                             }
                             else
                             {
-                                // Split the wall in half by creating a second wall
-                                if (secondPartDuration > MinWallDuration)
-                                {
-                                    ObstacleData secondPart = new ObstacleData(secondPartTime, ob.lineIndex, ob.lineLayer, secondPartDuration, ob.width, ob.height);
-                                    data.AddBeatmapObjectData(secondPart);
-                                    obstacles.Enqueue(secondPart);
-                                }
-
-                                // Modify first half of wall
-                                if (firstPartDuration > MinWallDuration)
-                                {
-                                    ob.UpdateTime(firstPartTime);
-                                    ob.UpdateDuration(firstPartDuration);
-                                    obstacles.Enqueue(ob);
-                                }
-                                else
-                                {
-                                    dataItems.Remove(ob);
-                                }
+                                // When this wall is cut, both pieces are too small, remove it
+                                dataItems.Remove(ob);
                             }
 
 #if DEBUG
-                            Plugin.Log.Info($"Split wall at {ob.time}({ob.duration}) -> {ob.time}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
+                            Plugin.Log.Info($"Split wall at {cutTime}: {originalTime}({originalDuration}) -> {firstPartTime}({firstPartDuration}) <|> {secondPartTime}({secondPartDuration}) cutMultiplier={cutMultiplier}");
 #endif
                             
                         }
